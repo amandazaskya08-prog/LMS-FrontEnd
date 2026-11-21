@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import type { UserRole } from "../../../src/models/types";
+import { setAuthToken } from "../../../src/services/api-clients";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -94,6 +95,14 @@ export default function LoginPage() {
         setError(json.message || "Login failed.");
         setLoading(false);
         return;
+      }
+
+      // Persist auth token to guarantee seamless cross-domain redirect (e.g. Vercel -> Railway)
+      if (json.data?.token) {
+        setAuthToken(json.data.token);
+      }
+      if (json.data?.user) {
+        localStorage.setItem("lms_user", JSON.stringify(json.data.user));
       }
 
       const userRole = json.data.user.role as UserRole;

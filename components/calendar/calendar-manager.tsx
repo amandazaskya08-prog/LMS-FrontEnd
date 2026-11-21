@@ -30,6 +30,7 @@ import {
   Award,
 } from "lucide-react";
 import type { ApiCalendarEvent, AuthUser } from "../../src/models/types";
+import { authFetch } from "../../src/services/api-clients";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -80,7 +81,7 @@ export default function CalendarManager() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        const res = await authFetch(`${API_URL}/auth/me`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data?.user) {
@@ -99,7 +100,7 @@ export default function CalendarManager() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/calendar`, { credentials: "include" });
+      const res = await authFetch(`${API_URL}/calendar`);
       const json = await res.json();
       if (res.ok && json.success) {
         setEvents(json.data || []);
@@ -159,10 +160,9 @@ export default function CalendarManager() {
         : `${API_URL}/calendar`;
       const method = editingEventId ? "PUT" : "POST";
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           title: formTitle,
           description: formDescription,
@@ -191,9 +191,8 @@ export default function CalendarManager() {
   const handleDeleteEvent = async (id: string, title: string) => {
     if (!confirm(`Hapus agenda akademik "${title}" secara permanen?`)) return;
     try {
-      const res = await fetch(`${API_URL}/calendar/${id}`, {
+      const res = await authFetch(`${API_URL}/calendar/${id}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (res.ok) {
         await fetchEvents();

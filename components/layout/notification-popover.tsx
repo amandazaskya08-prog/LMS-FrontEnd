@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { authFetch } from "../../src/services/api-clients";
 import {
   Bell,
   ClipboardCheck,
@@ -31,9 +32,7 @@ export default function NotificationPopover() {
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
-      const res = await fetch(`${API_URL}/notifications`, {
-        credentials: "include",
-      });
+      const res = await authFetch(`${API_URL}/notifications`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -69,9 +68,8 @@ export default function NotificationPopover() {
   const handleItemClick = async (notif: AppNotification) => {
     if (!notif.isRead) {
       try {
-        await fetch(`${API_URL}/notifications/${notif.id}/read`, {
+        await authFetch(`${API_URL}/notifications/${notif.id}/read`, {
           method: "PUT",
-          credentials: "include",
         });
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
@@ -90,9 +88,8 @@ export default function NotificationPopover() {
   // Mark all as read
   const handleMarkAllRead = async () => {
     try {
-      await fetch(`${API_URL}/notifications/read-all`, {
+      await authFetch(`${API_URL}/notifications/read-all`, {
         method: "PUT",
-        credentials: "include",
       });
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);

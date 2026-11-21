@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { StudentDirectoryItem, AuthUser } from "../../src/models/types";
+import { authFetch } from "../../src/services/api-clients";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -60,7 +61,7 @@ export default function StudentDirectoryManager() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        const res = await authFetch(`${API_URL}/auth/me`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
@@ -82,7 +83,7 @@ export default function StudentDirectoryManager() {
       if (user?.role === "admin" && selectedProgramId !== "all") {
         url += `?studyProgramId=${encodeURIComponent(selectedProgramId)}`;
       }
-      const res = await fetch(url, { credentials: "include" });
+      const res = await authFetch(url);
       if (!res.ok) {
         throw new Error("Gagal memuat direktori mahasiswa.");
       }
@@ -116,10 +117,9 @@ export default function StudentDirectoryManager() {
     const nextStatus = student.status.toLowerCase() === "aktif" ? "Cuti" : "Aktif";
     setUpdatingId(student.id);
     try {
-      const res = await fetch(`${API_URL}/students/${student.id}/status`, {
+      const res = await authFetch(`${API_URL}/students/${student.id}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {

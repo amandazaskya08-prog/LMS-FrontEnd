@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   FileText,
 } from "lucide-react";
+import { authFetch } from "../../src/services/api-clients";
 import type {
   ApiQuiz,
   AuthUser,
@@ -103,7 +104,7 @@ export default function QuizManager() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        const res = await authFetch(`${API_URL}/auth/me`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data?.user) {
@@ -122,7 +123,7 @@ export default function QuizManager() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/quizzes/mine`, { credentials: "include" });
+      const res = await authFetch(`${API_URL}/quizzes/mine`);
       const json = await res.json();
       if (res.ok && json.success) {
         setQuizzes(json.data || []);
@@ -144,7 +145,7 @@ export default function QuizManager() {
   const openCreateModal = async () => {
     setIsCreateOpen(true);
     try {
-      const res = await fetch(`${API_URL}/quizzes/courses`, { credentials: "include" });
+      const res = await authFetch(`${API_URL}/quizzes/courses`);
       const json = await res.json();
       if (res.ok && json.success) {
         setCourseOptions(json.data || []);
@@ -236,10 +237,9 @@ export default function QuizManager() {
 
     setCreating(true);
     try {
-      const res = await fetch(`${API_URL}/quizzes`, {
+      const res = await authFetch(`${API_URL}/quizzes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           title: newTitle,
           courseId: newCourseId,
@@ -277,10 +277,9 @@ export default function QuizManager() {
   // Toggle publish
   const handleTogglePublish = async (quiz: ApiQuiz) => {
     try {
-      const res = await fetch(`${API_URL}/quizzes/${quiz.id}`, {
+      const res = await authFetch(`${API_URL}/quizzes/${quiz.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ published: !quiz.published }),
       });
       if (res.ok) {
@@ -295,9 +294,8 @@ export default function QuizManager() {
   const handleDeleteQuiz = async (quizId: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus kuis/ujian ini secara permanen?")) return;
     try {
-      const res = await fetch(`${API_URL}/quizzes/${quizId}`, {
+      const res = await authFetch(`${API_URL}/quizzes/${quizId}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (res.ok) {
         await fetchQuizzes();
@@ -313,9 +311,7 @@ export default function QuizManager() {
     setLoadingAttempts(true);
     setAttemptSearch("");
     try {
-      const res = await fetch(`${API_URL}/quizzes/${quiz.id}/attempts`, {
-        credentials: "include",
-      });
+      const res = await authFetch(`${API_URL}/quizzes/${quiz.id}/attempts`);
       const json = await res.json();
       if (res.ok && json.success) {
         setAttemptsList(json.data || []);
@@ -331,9 +327,7 @@ export default function QuizManager() {
   const handleStartQuiz = async (quiz: ApiQuiz) => {
     setLoading(true);
     try {
-      const detailRes = await fetch(`${API_URL}/quizzes/${quiz.id}`, {
-        credentials: "include",
-      });
+      const detailRes = await authFetch(`${API_URL}/quizzes/${quiz.id}`);
       const detailJson = await detailRes.json();
       if (!detailRes.ok || !detailJson.success) {
         alert(detailJson.message || "Gagal memuat naskah soal kuis.");
@@ -341,9 +335,8 @@ export default function QuizManager() {
         return;
       }
 
-      const startRes = await fetch(`${API_URL}/quizzes/${quiz.id}/start`, {
+      const startRes = await authFetch(`${API_URL}/quizzes/${quiz.id}/start`, {
         method: "POST",
-        credentials: "include",
       });
       const startJson = await startRes.json();
       if (!startRes.ok || !startJson.success) {
@@ -399,10 +392,9 @@ export default function QuizManager() {
     if (!activeQuiz) return;
     setSubmittingQuiz(true);
     try {
-      const res = await fetch(`${API_URL}/quizzes/${activeQuiz.id}/submit`, {
+      const res = await authFetch(`${API_URL}/quizzes/${activeQuiz.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ answers: studentAnswers }),
       });
       const json = await res.json();

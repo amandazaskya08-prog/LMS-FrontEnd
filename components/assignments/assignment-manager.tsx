@@ -32,6 +32,7 @@ import type {
   ApiSubmission,
   AuthUser,
 } from "../../src/models/types";
+import { authFetch } from "../../src/services/api-clients";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -85,7 +86,7 @@ export default function AssignmentManager() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+        const res = await authFetch(`${API_URL}/auth/me`);
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data?.user) {
@@ -104,7 +105,7 @@ export default function AssignmentManager() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/assignments/mine`, { credentials: "include" });
+      const res = await authFetch(`${API_URL}/assignments/mine`);
       const json = await res.json();
       if (res.ok && json.success) {
         setAssignments(json.data || []);
@@ -126,7 +127,7 @@ export default function AssignmentManager() {
   const openCreateModal = async () => {
     setIsCreateOpen(true);
     try {
-      const res = await fetch(`${API_URL}/assignments/courses`, { credentials: "include" });
+      const res = await authFetch(`${API_URL}/assignments/courses`);
       const json = await res.json();
       if (res.ok && json.success) {
         setCourseOptions(json.data || []);
@@ -157,10 +158,9 @@ export default function AssignmentManager() {
 
     setCreating(true);
     try {
-      const res = await fetch(`${API_URL}/assignments`, {
+      const res = await authFetch(`${API_URL}/assignments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           title: newTitle,
           courseId: newCourseId,
@@ -192,9 +192,8 @@ export default function AssignmentManager() {
   const handleDeleteAssignment = async (id: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus tugas ini secara permanen?")) return;
     try {
-      const res = await fetch(`${API_URL}/assignments/${id}`, {
+      const res = await authFetch(`${API_URL}/assignments/${id}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (res.ok) {
         await fetchAssignments();
@@ -211,9 +210,7 @@ export default function AssignmentManager() {
     setSubmissionSearch("");
     setGradingSubId(null);
     try {
-      const res = await fetch(`${API_URL}/assignments/${asg.id}/submissions`, {
-        credentials: "include",
-      });
+      const res = await authFetch(`${API_URL}/assignments/${asg.id}/submissions`);
       const json = await res.json();
       if (res.ok && json.success) {
         setSubmissionsList(json.data || []);
@@ -229,10 +226,9 @@ export default function AssignmentManager() {
   const handleSaveGrade = async (subId: string) => {
     setSavingGrade(true);
     try {
-      const res = await fetch(`${API_URL}/assignments/submissions/${subId}/grade`, {
+      const res = await authFetch(`${API_URL}/assignments/submissions/${subId}/grade`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           score: Number(inputScore),
           feedback: inputFeedback,
@@ -275,10 +271,9 @@ export default function AssignmentManager() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_URL}/assignments/${selectedAsgForSubmit.id}/submit`, {
+      const res = await authFetch(`${API_URL}/assignments/${selectedAsgForSubmit.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           content: submitContent,
           link: submitLink,

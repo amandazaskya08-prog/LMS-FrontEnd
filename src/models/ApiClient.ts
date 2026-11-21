@@ -43,6 +43,13 @@ export class ApiClient {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
 
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("lms_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
     let res: Response;
     try {
       res = await fetch(ApiClient.buildUrl(path, query), {

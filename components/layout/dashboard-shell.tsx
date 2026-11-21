@@ -15,6 +15,7 @@ import SidebarNavigation from "./sidebar-navigation";
 import NotificationPopover from "./notification-popover";
 
 import { getInitials } from "../../src/lib/utils";
+import { authFetch, setAuthToken } from "../../src/services/api-clients";
 
 import type { AuthUser, UserRole } from "../../src/models/types";
 
@@ -44,13 +45,12 @@ export default function DashboardShell({
 
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, {
-          credentials: "include",
-        });
+        const res = await authFetch(`${API_URL}/auth/me`);
 
         if (!active) return;
 
         if (res.status === 401) {
+          setAuthToken(null);
           router.replace("/login");
           return;
         }
@@ -59,13 +59,17 @@ export default function DashboardShell({
         if (!active) return;
 
         if (!json.success) {
+          setAuthToken(null);
           router.replace("/login");
           return;
         }
 
         setUser(json.data.user as AuthUser);
       } catch {
-        if (active) router.replace("/login");
+        if (active) {
+          setAuthToken(null);
+          router.replace("/login");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -77,10 +81,10 @@ export default function DashboardShell({
   }, [router]);
 
   async function handleLogout() {
+    setAuthToken(null);
     try {
-      await fetch(`${API_URL}/auth/logout`, {
+      await authFetch(`${API_URL}/auth/logout`, {
         method: "POST",
-        credentials: "include",
       });
     } catch {
       // Ignore — proceed to the login page regardless.
