@@ -105,9 +105,15 @@ export default function LoginPage() {
         localStorage.setItem("lms_user", JSON.stringify(json.data.user));
       }
 
-      const userRole = json.data.user.role as UserRole;
+      const userRole = (json.data?.user?.role || "student") as UserRole;
       const target = destinations[userRole] ?? "/dashboard";
-      window.location.href = target;
+      router.push(target);
+      // Fallback navigation in case client router is blocked
+      setTimeout(() => {
+        if (window.location.pathname === "/login") {
+          window.location.href = target;
+        }
+      }, 100);
     } catch {
       setError("Cannot reach the server. Check your connection.");
       setLoading(false);
