@@ -15,6 +15,7 @@ import {
   Check,
   Printer,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   X,
   FileText,
@@ -24,6 +25,12 @@ import {
   HelpCircle,
   Download,
   AlertTriangle,
+  Plus,
+  Landmark,
+  BadgeCheck,
+  Calendar,
+  ExternalLink,
+  BookOpen,
 } from "lucide-react";
 import type {
   ApiUktBill,
@@ -36,38 +43,102 @@ import { authFetch } from "../../src/services/api-clients";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-const PAYMENT_METHODS = [
+interface PaymentMethodDetail {
+  id: string;
+  name: string;
+  bank: string;
+  code: string;
+  color: string;
+  bgBadge: string;
+  desc: string;
+  atmSteps: string[];
+  mBankingSteps: string[];
+}
+
+const PAYMENT_METHODS: PaymentMethodDetail[] = [
   {
     id: "va-bni",
     name: "Virtual Account BNI",
     bank: "Bank BNI",
     code: "8808",
-    logoColor: "bg-orange-500",
-    desc: "Bebas biaya admin transfer antar bank melalui ATM, Mobile, atau Internet Banking.",
+    color: "from-orange-500 to-amber-600",
+    bgBadge: "bg-orange-50 text-orange-700 border-orange-200",
+    desc: "Bebas biaya admin transfer antar bank melalui ATM, Mobile, atau Internet Banking BNI.",
+    atmSteps: [
+      "Masukkan kartu ATM BNI dan PIN Anda.",
+      "Pilih Menu Lainnya > Transfer > Jenis Rekening > Ke Rekening BNI.",
+      "Masukkan Nomor Virtual Account BNI (contoh: 8808 + NIM Anda).",
+      "Periksa rincian nama dan jumlah tagihan UKT pada layar konfirmasi, lalu pilih Ya.",
+    ],
+    mBankingSteps: [
+      "Buka aplikasi BNI Mobile Banking dan login.",
+      "Pilih menu Pembayaran > Biaya Pendidikan / Virtual Account Billing.",
+      "Pilih rekening debet dan masukkan nomor Virtual Account.",
+      "Konfirmasi rincian pembayaran, masukkan password transaksi, dan simpan struk elektronik.",
+    ],
   },
   {
     id: "va-mandiri",
     name: "Virtual Account Mandiri",
     bank: "Bank Mandiri",
     code: "8950",
-    logoColor: "bg-blue-600",
-    desc: "Pembayaran otomatis terverifikasi via Livin' by Mandiri dan ATM Mandiri.",
+    color: "from-blue-600 to-indigo-700",
+    bgBadge: "bg-blue-50 text-blue-700 border-blue-200",
+    desc: "Pembayaran terverifikasi otomatis secara instan via aplikasi Livin' by Mandiri.",
+    atmSteps: [
+      "Masukkan kartu ATM Mandiri dan 6 digit PIN.",
+      "Pilih Bayar / Beli > Pendidikan > Masukkan Kode Perusahaan Kampus.",
+      "Masukkan Nomor Virtual Account Mandiri Anda.",
+      "Tekan angka 1 untuk memilih tagihan, lalu pilih Ya untuk konfirmasi.",
+    ],
+    mBankingSteps: [
+      "Buka aplikasi Livin' by Mandiri (ikon kuning) dan login.",
+      "Pilih menu Bayar > Buat Pembayaran Baru > Pendidikan.",
+      "Cari penyedia jasa universitas dan masukkan Nomor VA Anda.",
+      "Cek nama mahasiswa dan nominal tagihan, lalu selesaikan dengan PIN Livin'.",
+    ],
   },
   {
     id: "va-bca",
     name: "Virtual Account BCA",
     bank: "Bank BCA",
     code: "1234",
-    logoColor: "bg-blue-800",
-    desc: "Transfer mudah melalui BCA Mobile, KlikBCA, dan ATM BCA.",
+    color: "from-blue-800 to-cyan-800",
+    bgBadge: "bg-cyan-50 text-cyan-800 border-cyan-200",
+    desc: "Transfer cepat kapan saja melalui aplikasi BCA Mobile, myBCA, dan ATM BCA.",
+    atmSteps: [
+      "Masukkan kartu ATM BCA dan PIN Anda.",
+      "Pilih menu Transaksi Lainnya > Transfer > Ke Rek BCA Virtual Account.",
+      "Ketik Nomor Virtual Account BCA Anda.",
+      "Cek kesesuaian nama dan jumlah tagihan pada layar, lalu tekan Ya.",
+    ],
+    mBankingSteps: [
+      "Buka aplikasi BCA Mobile, pilih m-BCA dan masukkan kode akses.",
+      "Pilih menu m-Transfer > BCA Virtual Account.",
+      "Masukkan Nomor Virtual Account Anda dan tekan Send.",
+      "Masukkan PIN m-BCA untuk mengonfirmasi transaksi pelunasan.",
+    ],
   },
   {
     id: "va-bri",
     name: "Virtual Account BRI",
     bank: "Bank BRI",
     code: "0020",
-    logoColor: "bg-cyan-600",
+    color: "from-sky-600 to-blue-700",
+    bgBadge: "bg-sky-50 text-sky-800 border-sky-200",
     desc: "Didukung penuh melalui aplikasi BRImo dan jaringan ATM BRI seluruh Indonesia.",
+    atmSteps: [
+      "Masukkan kartu ATM BRI dan PIN.",
+      "Pilih menu Transaksi Lain > Pembayaran > Lainnya > BRIVA.",
+      "Masukkan nomor BRIVA (Kode 0020 + NIM Anda).",
+      "Periksa rincian data mahasiswa pada monitor ATM, lalu tekan Ya.",
+    ],
+    mBankingSteps: [
+      "Buka aplikasi BRImo dan login dengan fingerprint atau password.",
+      "Pilih menu Pembayaran > BRIVA.",
+      "Masukkan nomor BRIVA mahasiswa.",
+      "Periksa detail tagihan UKT dan masukkan PIN BRImo Anda.",
+    ],
   },
 ];
 
@@ -81,20 +152,25 @@ export default function UKTManager() {
   const [summary, setSummary] = useState<ApiUktSummary | null>(null);
   const [studentInfo, setStudentInfo] = useState<StudentDirectoryItem | null>(null);
 
-  // Filters
+  // Filters & Tabs
   const [activeTab, setActiveTab] = useState<"all" | "Lunas" | "Menunggu Verifikasi" | "Belum Bayar">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Modals
   const [payModalOpen, setPayModalOpen] = useState(false);
   const [selectedBillForPay, setSelectedBillForPay] = useState<ApiUktBill | null>(null);
-  const [selectedMethod, setSelectedMethod] = useState(PAYMENT_METHODS[0].name);
+  const [selectedMethodId, setSelectedMethodId] = useState(PAYMENT_METHODS[0].id);
   const [instantVerify, setInstantVerify] = useState(true);
   const [submittingPayment, setSubmittingPayment] = useState(false);
 
   // Receipt Modal
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedBillForReceipt, setSelectedBillForReceipt] = useState<ApiUktBill | null>(null);
+
+  // Instructions Modal
+  const [guideModalOpen, setGuideModalOpen] = useState(false);
+  const [guideActiveBank, setGuideActiveBank] = useState(PAYMENT_METHODS[0].id);
+  const [guideTab, setGuideTab] = useState<"mbanking" | "atm">("mbanking");
 
   // Admin Verification state
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
@@ -169,6 +245,7 @@ export default function UKTManager() {
           setAllStudents(json.data.students);
           if (json.data.students.length > 0) {
             setSelectedStudentId(json.data.students[0].id);
+            setNewUktGroup(json.data.students[0].uktGroup || 3);
           }
         }
       }
@@ -189,6 +266,9 @@ export default function UKTManager() {
     e.preventDefault();
     if (!selectedBillForPay) return;
 
+    const chosen = PAYMENT_METHODS.find((m) => m.id === selectedMethodId);
+    const methodName = chosen ? chosen.name : PAYMENT_METHODS[0].name;
+
     setSubmittingPayment(true);
     try {
       const res = await authFetch(`${API_URL}/ukt/pay`, {
@@ -196,7 +276,7 @@ export default function UKTManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           billId: selectedBillForPay.id,
-          method: selectedMethod,
+          method: methodName,
           instantVerify,
         }),
       });
@@ -306,44 +386,60 @@ export default function UKTManager() {
     }).format(val);
   };
 
+  const selectedGuideMethod = useMemo(() => {
+    return PAYMENT_METHODS.find((m) => m.id === guideActiveBank) || PAYMENT_METHODS[0];
+  }, [guideActiveBank]);
+
   return (
-    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto pb-12">
+    <div className="page-container space-y-6">
       {/* ========================================================================= */}
       {/* 1. HERO BANNER HEADER & STATS STRIP                                        */}
       {/* ========================================================================= */}
-      <div className="quiz-banner-header">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="cal-hero-banner">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-white text-xs font-semibold mb-2">
-              <CreditCard size={13} className="text-emerald-300" />
-              <span>Sistem Pembayaran & Administrasi Keuangan UKT</span>
+            <div className="quiz-hero-tag">
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>SISTEM MANAJEMEN FINANSIAL & UKT TERPADU</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-              {isAdmin ? "Manajemen UKT & Verifikasi Keuangan" : "Uang Kuliah Tunggal (UKT)"}
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1">
+              {isAdmin ? "Manajemen UKT & Verifikasi Pembayaran Mahasiswa" : "Uang Kuliah Tunggal (UKT) & Administrasi Keuangan"}
             </h1>
-            <p className="text-white/80 text-sm mt-1 max-w-2xl">
+            <p className="text-blue-100 text-xs sm:text-sm max-w-xl mt-2 leading-relaxed font-medium">
               {isAdmin
-                ? "Monitoring pelunasan UKT seluruh program studi, validasi bukti transfer Virtual Account, serta penerbitan tagihan semester."
-                : "Informasi tagihan semester, generate kode bayar Virtual Account (VA), dan unduh lembar bukti pelunasan resmi."}
+                ? "Pantau dan kelola seluruh transaksi pembayaran UKT mahasiswa, verifikasi bukti pelunasan transfer, serta terbitkan ketetapan tagihan semester."
+                : "Informasi tagihan semester resmi, nomor Virtual Account transfer bank nasional, konfirmasi pembayaran, serta unduhan kwitansi pelunasan sah."}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0 self-start md:self-auto">
+          <div className="flex items-center gap-3 flex-shrink-0 self-start md:self-auto flex-wrap">
             <button
               onClick={fetchUktData}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-white text-[#193966] hover:bg-slate-50 transition shadow-lg cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-xs bg-white text-[#193966] hover:bg-slate-50 transition shadow-lg cursor-pointer"
               title="Perbarui Data UKT"
             >
               <RefreshCw size={14} className={loading ? "animate-spin text-[#193966]" : "text-[#193966]"} />
               <span>Segarkan</span>
             </button>
 
+            {isStudent && (
+              <button
+                onClick={() => setGuideModalOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white transition backdrop-blur-md border border-white/20 cursor-pointer"
+              >
+                <HelpCircle size={15} />
+                <span>Petunjuk Bayar VA</span>
+              </button>
+            )}
+
             {isAdmin && (
               <button
                 onClick={openCreateBillModal}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-lg shadow-emerald-500/20 cursor-pointer"
+                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-xl shadow-emerald-500/25 transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
               >
-                <Sparkles size={14} />
+                <div className="w-6 h-6 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                  <Plus size={16} strokeWidth={3} />
+                </div>
                 <span>+ Terbitkan Tagihan UKT</span>
               </button>
             )}
@@ -351,55 +447,65 @@ export default function UKTManager() {
         </div>
 
         {/* Stats Strip */}
-        <div className="quiz-stats-strip">
+        <div className="quiz-stats-strip mt-6 pt-5 border-t border-white/20">
           {isAdmin ? (
             <>
               <div className="quiz-stat-box">
-                <span>Total Tagihan Terbit</span>
-                <strong>{summary?.totalBills ?? bills.length} Tagihan</strong>
+                <span className="text-blue-200 font-semibold text-xs">Total Tagihan Terbit</span>
+                <strong className="text-white text-2xl font-black">
+                  {summary?.totalBills ?? bills.length} Tagihan
+                </strong>
               </div>
               <div className="quiz-stat-box">
-                <span>Total UKT Terkumpul</span>
-                <strong className="text-emerald-300">{formatRupiah(summary?.totalCollected ?? 0)}</strong>
+                <span className="text-blue-200 font-semibold text-xs">Dana UKT Terkumpul</span>
+                <strong className="text-emerald-300 text-2xl font-black">
+                  {formatRupiah(summary?.totalCollected ?? 0)}
+                </strong>
               </div>
               <div className="quiz-stat-box">
-                <span>Menunggu Verifikasi</span>
-                <strong className="text-amber-200">{summary?.pendingCount ?? 0} Transaksi</strong>
+                <span className="text-blue-200 font-semibold text-xs">Menunggu Verifikasi</span>
+                <strong className="text-amber-200 text-2xl font-black">
+                  {summary?.pendingCount ?? 0} Transaksi
+                </strong>
               </div>
               <div className="quiz-stat-box">
-                <span>Belum Melakukan Bayar</span>
-                <strong className="text-rose-200">{summary?.unpaidCount ?? 0} Mahasiswa</strong>
+                <span className="text-blue-200 font-semibold text-xs">Belum Melakukan Bayar</span>
+                <strong className="text-rose-200 text-2xl font-black">
+                  {summary?.unpaidCount ?? 0} Mahasiswa
+                </strong>
               </div>
             </>
           ) : (
             <>
               <div className="quiz-stat-box">
-                <span>Golongan UKT Anda</span>
-                <strong className="text-emerald-300">
+                <span className="text-blue-200 font-semibold text-xs">Golongan Penetapan UKT</span>
+                <strong className="text-emerald-300 text-2xl font-black">
                   Golongan {studentInfo?.uktGroup ?? (bills[0]?.uktGroup || 3)}
                 </strong>
               </div>
               <div className="quiz-stat-box">
-                <span>Total Tagihan Semester</span>
-                <strong>{formatRupiah(bills[0]?.amount || 2500000)}</strong>
+                <span className="text-blue-200 font-semibold text-xs">Nominal Tagihan Semester</span>
+                <strong className="text-white text-2xl font-black">
+                  {formatRupiah(bills[0]?.amount || 2500000)}
+                </strong>
               </div>
               <div className="quiz-stat-box">
-                <span>Status Pelunasan</span>
+                <span className="text-blue-200 font-semibold text-xs">Status Pelunasan</span>
                 <strong
-                  className={
+                  className={`text-2xl font-black ${
                     bills[0]?.status === "Lunas"
                       ? "text-emerald-300"
                       : bills[0]?.status === "Menunggu Verifikasi"
                       ? "text-amber-200"
                       : "text-rose-200"
-                  }
+                  }`}
                 >
                   {bills[0]?.status || "Belum Bayar"}
                 </strong>
               </div>
               <div className="quiz-stat-box">
-                <span>Batas Waktu Pelunasan</span>
-                <strong className="text-blue-200">
+                <span className="text-blue-200 font-semibold text-xs">Batas Waktu Pelunasan</span>
+                <strong className="text-blue-200 text-base font-extrabold mt-1">
                   {bills[0]?.dueDate
                     ? new Date(bills[0].dueDate).toLocaleDateString("id-ID", {
                         day: "numeric",
@@ -415,153 +521,219 @@ export default function UKTManager() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. STUDENT ACTIVE BILL CARD / PAYMENT BANNER (FOR STUDENT)                 */}
+      {/* 2. STUDENT ACTIVE BILL HERO CARD (ELITE FINTECH / ACADEMIC STYLE)          */}
       {/* ========================================================================= */}
       {isStudent && bills.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
-          <div className="flex items-start gap-4">
-            <div
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                bills[0].status === "Lunas"
-                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                  : bills[0].status === "Menunggu Verifikasi"
-                  ? "bg-amber-50 text-amber-600 border border-amber-200"
-                  : "bg-blue-50 text-[#193966] border border-blue-200"
-              }`}
-            >
-              {bills[0].status === "Lunas" ? (
-                <ShieldCheck size={30} />
-              ) : bills[0].status === "Menunggu Verifikasi" ? (
-                <Clock size={30} />
-              ) : (
-                <Wallet size={30} />
+        <div className="lms-card-elevated border-2 border-slate-200/90 relative overflow-hidden p-6 sm:p-7">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div className="flex items-start gap-4 sm:gap-5">
+              <div
+                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+                  bills[0].status === "Lunas"
+                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                    : bills[0].status === "Menunggu Verifikasi"
+                    ? "bg-amber-50 text-amber-600 border border-amber-200"
+                    : "bg-blue-50 text-[#193966] border border-blue-200"
+                }`}
+              >
+                {bills[0].status === "Lunas" ? (
+                  <ShieldCheck className="w-8 h-8 sm:w-9 sm:h-9" />
+                ) : bills[0].status === "Menunggu Verifikasi" ? (
+                  <Clock className="w-8 h-8 sm:w-9 sm:h-9 animate-pulse" />
+                ) : (
+                  <Wallet className="w-8 h-8 sm:w-9 sm:h-9" />
+                )}
+              </div>
+
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="px-3 py-1 rounded-lg text-[10.5px] font-black uppercase tracking-wider bg-blue-50 text-[#193966] border border-blue-200 shadow-2xs">
+                    Tagihan Semester Ganjil 2026/2027
+                  </span>
+                  <span
+                    className={`text-xs px-3 py-1 rounded-full font-black border shadow-2xs ${
+                      bills[0].status === "Lunas"
+                        ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                        : bills[0].status === "Menunggu Verifikasi"
+                        ? "bg-amber-100 text-amber-900 border-amber-300"
+                        : "bg-rose-100 text-rose-900 border-rose-300"
+                    }`}
+                  >
+                    {bills[0].status}
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2 tracking-tight">
+                  {formatRupiah(bills[0].amount)}
+                </h2>
+
+                <p className="text-xs text-slate-600 mt-1 max-w-xl leading-relaxed font-medium">
+                  {bills[0].status === "Lunas"
+                    ? "Status keuangan Anda telah dinyatakan LUNAS terverifikasi oleh BAAK. Seluruh hak registrasi Kartu Rencana Studi (KRS) dan akses ujian CBT telah dibuka."
+                    : bills[0].status === "Menunggu Verifikasi"
+                    ? "Konfirmasi transfer Virtual Account telah diterima sistem dan dalam antrean verifikasi otomatis Bagian Keuangan BAAK."
+                    : "Lakukan pelunasan sebelum jatuh tempo akademik agar masa pengisian KRS dan perkuliahan aktif tidak terhambat."}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons on Bill */}
+            <div className="flex items-center gap-3 w-full lg:w-auto flex-wrap">
+              {bills[0].status === "Belum Bayar" && (
+                <button
+                  onClick={() => {
+                    setSelectedBillForPay(bills[0]);
+                    setPayModalOpen(true);
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl font-black text-xs text-white bg-gradient-to-r from-[#193966] via-[#234b8c] to-[#1e40af] hover:from-[#132c50] hover:to-[#1a3869] shadow-xl shadow-blue-950/20 hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
+                >
+                  <CreditCard size={16} />
+                  <span>Bayar UKT Sekarang</span>
+                  <ArrowRight size={14} />
+                </button>
+              )}
+
+              {bills[0].status === "Menunggu Verifikasi" && (
+                <div className="w-full sm:w-auto flex items-center gap-3 bg-amber-50 text-amber-900 border border-amber-200/90 rounded-2xl px-5 py-3 shadow-xs">
+                  <Clock size={16} className="text-amber-600 animate-spin flex-shrink-0" />
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-black">Dalam Proses Verifikasi</span>
+                    <span className="text-[11px] text-amber-700">Estimasi validasi berkisar 1 - 5 menit</span>
+                  </div>
+                </div>
+              )}
+
+              {bills[0].status === "Lunas" && (
+                <button
+                  onClick={() => {
+                    setSelectedBillForReceipt(bills[0]);
+                    setReceiptModalOpen(true);
+                  }}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-black text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-xl shadow-emerald-700/25 transition-all hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <Download size={15} />
+                  <span>Unduh Kwitansi Pelunasan</span>
+                </button>
               )}
             </div>
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Semester Ganjil 2026/2027
-                </span>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    bills[0].status === "Lunas"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : bills[0].status === "Menunggu Verifikasi"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-rose-100 text-rose-800"
-                  }`}
-                >
-                  {bills[0].status}
-                </span>
-              </div>
-
-              <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-1">
-                {formatRupiah(bills[0].amount)}
-              </h2>
-
-              <p className="text-xs text-slate-500 mt-0.5">
-                {bills[0].status === "Lunas"
-                  ? "Pembayaran UKT telah lunas terverifikasi. Hak registrasi akademik dan KRS aktif."
-                  : bills[0].status === "Menunggu Verifikasi"
-                  ? "Transaksi transfer telah dikonfirmasi dan sedang ditinjau oleh Bagian Keuangan BAAK."
-                  : "Lakukan pembayaran sebelum batas akhir pelunasan agar akses pengisian KRS tidak tertunda."}
-              </p>
-            </div>
-          </div>
-
-          {/* Action on Active Bill */}
-          <div className="flex items-center gap-3 w-full md:w-auto flex-wrap">
-            {bills[0].status === "Belum Bayar" && (
-              <button
-                onClick={() => {
-                  setSelectedBillForPay(bills[0]);
-                  setPayModalOpen(true);
-                }}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-xs bg-[#193966] hover:bg-[#122b50] text-white transition shadow-md hover:shadow-lg cursor-pointer"
-              >
-                <CreditCard size={15} />
-                <span>Bayar UKT Sekarang</span>
-              </button>
-            )}
-
-            {bills[0].status === "Menunggu Verifikasi" && (
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl px-4 py-2 text-xs font-medium flex items-center gap-2">
-                  <Clock size={14} className="text-amber-600 animate-pulse" />
-                  <span>Verifikasi Sedang Diproses</span>
-                </div>
-              </div>
-            )}
-
-            {bills[0].status === "Lunas" && (
-              <button
-                onClick={() => {
-                  setSelectedBillForReceipt(bills[0]);
-                  setReceiptModalOpen(true);
-                }}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-md hover:shadow-lg cursor-pointer"
-              >
-                <Download size={15} />
-                <span>Unduh Bukti Lunas</span>
-              </button>
-            )}
           </div>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* 3. VIRTUAL ACCOUNT BOX FOR STUDENT (WHEN BILL IS UNPAID OR PENDING)        */}
+      {/* 3. VIRTUAL ACCOUNT CARD WITH BANK SELECTOR CHIPS (FOR STUDENT)            */}
       {/* ========================================================================= */}
       {isStudent && bills.length > 0 && bills[0].status !== "Lunas" && (
-        <div className="bg-gradient-to-r from-slate-900 via-[#193966] to-[#0f2442] rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col gap-1 w-full md:w-auto">
-            <span className="text-xs uppercase font-semibold text-emerald-300 tracking-wider flex items-center gap-1.5">
-              <Sparkles size={13} />
-              Nomor Virtual Account (VA) Resmi Mahasiswa
-            </span>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="font-mono text-2xl md:text-3xl font-black tracking-wider text-white">
-                {bills[0].payment?.vaNumber || `8808${studentInfo?.nim || "2023101001"}`}
-              </span>
-              <button
-                onClick={() =>
-                  handleCopyVA(
-                    bills[0].payment?.vaNumber || `8808${studentInfo?.nim || "2023101001"}`
-                  )
-                }
-                className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition cursor-pointer text-white"
-                title="Salin Nomor VA"
-              >
-                {copiedVA === (bills[0].payment?.vaNumber || `8808${studentInfo?.nim || "2023101001"}`) ? (
-                  <Check size={18} className="text-emerald-300" />
-                ) : (
-                  <Copy size={18} />
-                )}
-              </button>
-            </div>
-            <span className="text-xs text-slate-300 mt-1">
-              Bank: <strong>{bills[0].payment?.method || "Bank BNI / Mandiri / BCA"}</strong> · Atas Nama:{" "}
-              <strong>{user?.name || "Mahasiswa"}</strong>
-            </span>
-          </div>
+        <div className="rounded-3xl bg-gradient-to-br from-[#0c1a30] via-[#162f55] to-[#1b3a6b] p-6 sm:p-7 text-white shadow-2xl border border-white/10 relative overflow-hidden">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex flex-col md:items-end gap-2 w-full md:w-auto">
-            {bills[0].status === "Belum Bayar" && (
-              <button
-                onClick={() => {
-                  setSelectedBillForPay(bills[0]);
-                  setPayModalOpen(true);
-                }}
-                className="w-full md:w-auto px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs transition shadow-lg cursor-pointer flex items-center justify-center gap-2"
-              >
-                <CheckCircle2 size={16} />
-                <span>Konfirmasi / Bayar VA Sekarang</span>
-              </button>
-            )}
-            <span className="text-[11px] text-slate-300/80">
-              Transfer dapat dilakukan dari seluruh ATM dan Mobile Banking di Indonesia.
-            </span>
+          <div className="relative z-10 flex flex-col gap-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/15">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-emerald-300">
+                  <Landmark size={16} />
+                </div>
+                <span className="text-xs uppercase font-black text-emerald-300 tracking-wider">
+                  Kanal Pembayaran Virtual Account (VA) Nasional
+                </span>
+              </div>
+              <span className="text-[11px] text-blue-200 font-semibold">
+                Biaya Admin Transaksi: <strong className="text-emerald-300">Rp 0 (Gratis)</strong>
+              </span>
+            </div>
+
+            {/* Bank Selector Chips */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {PAYMENT_METHODS.map((pm) => {
+                const isSelected = selectedMethodId === pm.id;
+                return (
+                  <button
+                    key={pm.id}
+                    onClick={() => setSelectedMethodId(pm.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer flex-shrink-0 border ${
+                      isSelected
+                        ? "bg-white text-[#193966] border-white shadow-md font-black"
+                        : "bg-white/10 text-white/80 border-white/10 hover:bg-white/20"
+                    }`}
+                  >
+                    <span>{pm.bank}</span>
+                    {isSelected && <BadgeCheck size={14} className="text-[#193966]" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Virtual Account Display Strip */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 bg-white/5 rounded-2xl p-5 border border-white/10 backdrop-blur-md">
+              <div className="flex flex-col">
+                <span className="text-xs text-blue-200 font-medium">
+                  Nomor Virtual Account{" "}
+                  <strong>{PAYMENT_METHODS.find((m) => m.id === selectedMethodId)?.bank}</strong>
+                </span>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <span className="font-mono text-2xl sm:text-3xl font-black tracking-widest text-white drop-shadow-sm">
+                    {bills[0].payment?.vaNumber ||
+                      `${PAYMENT_METHODS.find((m) => m.id === selectedMethodId)?.code || "8808"}${
+                        studentInfo?.nim || "2023101001"
+                      }`}
+                  </span>
+                  <button
+                    onClick={() =>
+                      handleCopyVA(
+                        bills[0].payment?.vaNumber ||
+                          `${PAYMENT_METHODS.find((m) => m.id === selectedMethodId)?.code || "8808"}${
+                            studentInfo?.nim || "2023101001"
+                          }`
+                      )
+                    }
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 transition cursor-pointer text-xs font-bold text-white border border-white/20"
+                    title="Salin Nomor VA"
+                  >
+                    {copiedVA ? (
+                      <>
+                        <Check size={14} className="text-emerald-300" />
+                        <span className="text-emerald-300">Tersalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Salin Nomor</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <span className="text-xs text-blue-200/90 mt-1.5">
+                  Atas Nama Mahasiswa: <strong>{user?.name || "Mahasiswa"}</strong> · Kode Kampus: <strong>4401</strong>
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                {bills[0].status === "Belum Bayar" && (
+                  <button
+                    onClick={() => {
+                      setSelectedBillForPay(bills[0]);
+                      setPayModalOpen(true);
+                    }}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs transition shadow-lg shadow-emerald-500/25 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Konfirmasi Pembayaran VA</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setGuideActiveBank(selectedMethodId);
+                    setGuideModalOpen(true);
+                  }}
+                  className="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition border border-white/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <BookOpen size={14} />
+                  <span>Panduan Transfer</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -569,52 +741,62 @@ export default function UKTManager() {
       {/* ========================================================================= */}
       {/* 4. FILTER CONTROLS & SEARCH BAR                                            */}
       {/* ========================================================================= */}
-      <div className="quiz-control-bar">
-        {/* Tab Filters */}
-        <div className="lms-tab-nav">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={activeTab === "all" ? "active" : ""}
-          >
-            <span>Semua Tagihan</span>
-            <span className="lms-tab-pill">{bills.length}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("Lunas")}
-            className={activeTab === "Lunas" ? "active" : ""}
-          >
-            <span>Lunas</span>
-            <span className="lms-tab-pill">
-              {bills.filter((b) => b.status === "Lunas").length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("Menunggu Verifikasi")}
-            className={activeTab === "Menunggu Verifikasi" ? "active" : ""}
-          >
-            <span>Menunggu Verifikasi</span>
-            <span className="lms-tab-pill">
-              {bills.filter((b) => b.status === "Menunggu Verifikasi").length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("Belum Bayar")}
-            className={activeTab === "Belum Bayar" ? "active" : ""}
-          >
-            <span>Belum Bayar</span>
-            <span className="lms-tab-pill">
-              {bills.filter((b) => b.status === "Belum Bayar").length}
-            </span>
-          </button>
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Status Filter Tabs */}
+        <div className="lms-tab-nav w-full lg:w-auto">
+          {[
+            {
+              id: "all",
+              label: "Semua Tagihan",
+              count: bills.length,
+              icon: CreditCard,
+              badgeClass: "",
+            },
+            {
+              id: "Lunas",
+              label: "Lunas Terverifikasi",
+              count: bills.filter((b) => b.status === "Lunas").length,
+              icon: CheckCircle2,
+              badgeClass: "bg-emerald-100 text-emerald-800",
+            },
+            {
+              id: "Menunggu Verifikasi",
+              label: "Menunggu Verifikasi",
+              count: bills.filter((b) => b.status === "Menunggu Verifikasi").length,
+              icon: Clock,
+              badgeClass: "bg-amber-100 text-amber-800",
+            },
+            {
+              id: "Belum Bayar",
+              label: "Belum Bayar",
+              count: bills.filter((b) => b.status === "Belum Bayar").length,
+              icon: AlertCircle,
+              badgeClass: "bg-rose-100 text-rose-800",
+            },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`lms-tab-pill ${isActive ? "active" : ""}`}
+              >
+                <Icon size={14} className={isActive ? "text-[#193966]" : "text-slate-400"} />
+                <span>{tab.label}</span>
+                <span className={`lms-tab-badge ${tab.badgeClass}`}>{tab.count}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-72">
+        <div className="flex items-center gap-3 w-full lg:w-72">
+          <div className="relative w-full">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder={isAdmin ? "Cari Mahasiswa, NIM, Prodi..." : "Cari riwayat tagihan..."}
+              placeholder={isAdmin ? "Cari Nama, NIM, Prodi..." : "Cari riwayat tagihan..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#193966]/20 focus:border-[#193966] bg-slate-50/50"
@@ -624,27 +806,32 @@ export default function UKTManager() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. BILLS LIST / CARD GRID                                                  */}
+      {/* 5. BILLS LIST / CARD GRID USING LMS-CARD-ELEVATED                          */}
       {/* ========================================================================= */}
       {loading ? (
-        <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center flex flex-col items-center justify-center gap-3">
-          <RefreshCw size={28} className="animate-spin text-[#193966]" />
-          <span className="text-xs font-semibold text-slate-600">
-            Memuat data transaksi dan tagihan UKT...
-          </span>
+        <div className="bg-white rounded-3xl p-16 border border-slate-200 text-center shadow-sm">
+          <div className="w-10 h-10 border-3 border-[#193966] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-bold text-slate-700">Memuat data transaksi dan tagihan UKT...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-rose-50 border border-rose-300 text-rose-800 p-5 rounded-2xl text-xs font-bold flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600" />
+          <span>{error}</span>
         </div>
       ) : filteredBills.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center flex flex-col items-center justify-center gap-3">
-          <CreditCard size={36} className="text-slate-300" />
-          <h3 className="text-sm font-bold text-slate-800">Tidak ada data tagihan UKT ditemukan</h3>
-          <p className="text-xs text-slate-500 max-w-sm">
+        <div className="bg-white rounded-3xl p-16 border-2 border-dashed border-slate-300 text-center shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3 border border-slate-200">
+            <CreditCard className="w-8 h-8 opacity-60" />
+          </div>
+          <h3 className="text-base font-extrabold text-slate-900">Tidak Ada Data Tagihan Ditemukan</h3>
+          <p className="text-xs text-slate-600 max-w-sm mx-auto mt-1 leading-relaxed font-medium">
             {searchQuery
               ? `Tidak ditemukan tagihan yang sesuai dengan kata kunci "${searchQuery}".`
               : "Belum ada catatan tagihan pada kategori filter ini."}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="quiz-grid">
           {filteredBills.map((bill) => {
             const isLunas = bill.status === "Lunas";
             const isPending = bill.status === "Menunggu Verifikasi";
@@ -652,68 +839,78 @@ export default function UKTManager() {
             return (
               <div
                 key={bill.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow relative"
+                className="lms-card-elevated border-2 border-slate-200 group"
               >
                 <div>
-                  {/* Top Meta */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-[11px] font-bold text-slate-700">
+                  {/* Card Header with Badges */}
+                  <div className="flex items-center justify-between gap-2 mb-3.5">
+                    <span className="px-3 py-1 rounded-lg text-[10.5px] font-black uppercase tracking-wider bg-blue-50 text-[#193966] border border-blue-200 shadow-2xs flex items-center gap-1.5">
                       <GraduationCap size={13} className="text-[#193966]" />
                       <span>Golongan {bill.uktGroup}</span>
                     </span>
 
                     <span
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      className={`text-xs px-3 py-1 rounded-full font-black border shadow-2xs flex items-center gap-1.5 ${
                         isLunas
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "bg-emerald-100 text-emerald-900 border-emerald-300"
                           : isPending
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-rose-100 text-rose-800"
+                          ? "bg-amber-100 text-amber-900 border-amber-300"
+                          : "bg-rose-100 text-rose-900 border-rose-300"
                       }`}
                     >
-                      {bill.status}
+                      {isLunas ? (
+                        <CheckCircle2 size={13} className="text-emerald-700" />
+                      ) : isPending ? (
+                        <Clock size={13} className="text-amber-700 animate-spin" />
+                      ) : (
+                        <AlertCircle size={13} className="text-rose-700" />
+                      )}
+                      <span>{bill.status}</span>
                     </span>
                   </div>
 
                   {/* Student info if admin */}
                   {isAdmin && (
-                    <div className="flex items-start gap-3 mb-3.5 pb-3 border-b border-slate-100">
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 text-[#193966] font-black text-xs flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-start gap-3 mb-4 pb-3.5 border-b border-slate-100">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#193966] to-[#234b8c] text-white font-black text-xs flex items-center justify-center flex-shrink-0 shadow-sm">
                         {bill.studentName ? bill.studentName.slice(0, 2).toUpperCase() : "MH"}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <h4 className="text-sm font-bold text-slate-900 truncate">
+                        <h4 className="text-sm font-black text-slate-900 truncate">
                           {bill.studentName || "Mahasiswa"}
                         </h4>
-                        <span className="text-[11px] text-slate-500">
-                          NIM: <strong>{bill.studentNim}</strong> · {bill.studyProgramName}
+                        <span className="text-xs text-slate-500 font-semibold mt-0.5">
+                          NIM: <strong className="text-slate-800">{bill.studentNim}</strong> · {bill.studyProgramName}
                         </span>
                       </div>
                     </div>
                   )}
 
-                  {/* Nominal and Due Date */}
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[11px] text-slate-500 font-medium">Nominal UKT Semester</span>
-                    <span className="text-xl font-black text-slate-900 tracking-tight">
+                  {/* Nominal and Semester */}
+                  <div className="flex flex-col gap-1 mb-3">
+                    <span className="text-xs font-semibold text-slate-500">Nominal Tagihan UKT Semester</span>
+                    <span className="text-2xl font-black text-slate-900 tracking-tight">
                       {formatRupiah(bill.amount)}
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {bill.semesterName || "Semester Ganjil 2026/2027"}
                     </span>
                   </div>
 
-                  {/* Payment Details */}
-                  {bill.payment && (
-                    <div className="mt-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex flex-col gap-1.5">
+                  {/* Payment Details Container */}
+                  {bill.payment ? (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 text-xs flex flex-col gap-2 mb-3">
                       <div className="flex items-center justify-between text-slate-600">
-                        <span>Metode Bayar:</span>
+                        <span className="font-medium">Metode Pembayaran:</span>
                         <strong className="text-slate-800">{bill.payment.method}</strong>
                       </div>
                       <div className="flex items-center justify-between text-slate-600">
-                        <span>Nomor VA:</span>
-                        <div className="flex items-center gap-1.5 font-mono font-bold text-slate-800">
+                        <span className="font-medium">Nomor VA:</span>
+                        <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200">
                           <span>{bill.payment.vaNumber}</span>
                           <button
                             onClick={() => handleCopyVA(bill.payment!.vaNumber)}
-                            className="text-slate-400 hover:text-slate-600"
+                            className="text-slate-400 hover:text-slate-700 cursor-pointer"
                             title="Salin VA"
                           >
                             <Copy size={12} />
@@ -721,8 +918,8 @@ export default function UKTManager() {
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-slate-600">
-                        <span>Tanggal Bayar:</span>
-                        <span className="text-slate-700">
+                        <span className="font-medium">Waktu Transaksi:</span>
+                        <span className="text-slate-700 font-semibold">
                           {new Date(bill.payment.paidAt).toLocaleDateString("id-ID", {
                             day: "numeric",
                             month: "short",
@@ -731,39 +928,45 @@ export default function UKTManager() {
                         </span>
                       </div>
                     </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-500 mb-3 flex items-center gap-2">
+                      <Clock size={13} className="text-slate-400 flex-shrink-0" />
+                      <span>Belum ada transaksi pembayaran yang dilakukan.</span>
+                    </div>
                   )}
 
-                  <div className="mt-3 text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <Clock size={12} />
+                  <div className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium mb-1">
+                    <Calendar size={13} className="text-slate-400" />
                     <span>
                       Jatuh Tempo:{" "}
-                      {new Date(bill.dueDate).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      <strong>
+                        {new Date(bill.dueDate).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </strong>
                     </span>
                   </div>
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {/* Admin Actions */}
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
                   {isAdmin ? (
                     isPending && bill.payment ? (
                       <div className="flex items-center gap-2 w-full">
                         <button
                           disabled={verifyingId === bill.payment.id}
                           onClick={() => handleVerifyPayment(bill.payment!.id, "approve")}
-                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                          className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
                         >
-                          <CheckCircle2 size={13} />
+                          <CheckCircle2 size={14} />
                           <span>{verifyingId === bill.payment.id ? "Memproses..." : "Verifikasi Lunas"}</span>
                         </button>
                         <button
                           disabled={verifyingId === bill.payment.id}
                           onClick={() => handleVerifyPayment(bill.payment!.id, "reject")}
-                          className="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition cursor-pointer border border-rose-200"
+                          className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition cursor-pointer border border-rose-200"
                         >
                           Tolak
                         </button>
@@ -774,13 +977,13 @@ export default function UKTManager() {
                           setSelectedBillForReceipt(bill);
                           setReceiptModalOpen(true);
                         }}
-                        className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer border border-slate-200 flex items-center justify-center gap-1.5"
+                        className="lms-btn-secondary w-full"
                       >
-                        <FileText size={13} className="text-[#193966]" />
-                        <span>Lihat Bukti Bayar</span>
+                        <FileText size={14} className="text-[#193966]" />
+                        <span>Lihat Bukti Pelunasan</span>
                       </button>
                     ) : (
-                      <span className="text-xs text-slate-400 italic">Menunggu pembayaran mahasiswa</span>
+                      <span className="text-xs text-slate-500 italic py-1">Menunggu transaksi mahasiswa</span>
                     )
                   ) : (
                     /* Student Actions */
@@ -790,14 +993,14 @@ export default function UKTManager() {
                           setSelectedBillForReceipt(bill);
                           setReceiptModalOpen(true);
                         }}
-                        className="w-full py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs transition cursor-pointer border border-emerald-200 flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 px-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-xs transition cursor-pointer border border-emerald-200 flex items-center justify-center gap-1.5 shadow-2xs"
                       >
-                        <CheckCircle2 size={13} />
+                        <CheckCircle2 size={14} className="text-emerald-600" />
                         <span>Unduh Lembar Bukti Lunas</span>
                       </button>
                     ) : isPending ? (
-                      <div className="w-full py-2 px-3 rounded-xl bg-amber-50 text-amber-800 font-bold text-xs border border-amber-200 flex items-center justify-center gap-1.5">
-                        <Clock size={13} className="animate-spin text-amber-600" />
+                      <div className="w-full py-2.5 px-3 rounded-xl bg-amber-50 text-amber-800 font-bold text-xs border border-amber-200 flex items-center justify-center gap-1.5">
+                        <Clock size={14} className="animate-spin text-amber-600" />
                         <span>Sedang Ditinjau Admin</span>
                       </div>
                     ) : (
@@ -806,9 +1009,9 @@ export default function UKTManager() {
                           setSelectedBillForPay(bill);
                           setPayModalOpen(true);
                         }}
-                        className="w-full py-2 px-3 rounded-xl bg-[#193966] hover:bg-[#122b50] text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                        className="lms-btn-primary w-full"
                       >
-                        <CreditCard size={13} />
+                        <CreditCard size={14} />
                         <span>Bayar Tagihan Ini</span>
                       </button>
                     )
@@ -833,7 +1036,7 @@ export default function UKTManager() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-900">Pembayaran UKT Mahasiswa</h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 font-medium">
                     Pilih bank penerbit Virtual Account untuk menyelesaikan pelunasan semester.
                   </p>
                 </div>
@@ -849,51 +1052,53 @@ export default function UKTManager() {
 
             <form onSubmit={handlePaySubmit} className="flex flex-col gap-5 p-6">
               {/* Summary Card */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
                 <div>
-                  <span className="text-xs text-slate-500">Total Nominal UKT</span>
-                  <h4 className="text-xl font-black text-slate-900">
+                  <span className="text-xs text-slate-500 font-medium">Total Nominal Tagihan UKT</span>
+                  <h4 className="text-2xl font-black text-slate-900 mt-0.5">
                     {formatRupiah(selectedBillForPay.amount)}
                   </h4>
-                  <span className="text-[11px] text-slate-400">
-                    Golongan {selectedBillForPay.uktGroup} · Biaya Admin: Rp 0 (Gratis)
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Golongan {selectedBillForPay.uktGroup} · Biaya Administrasi: <strong className="text-emerald-600">Rp 0 (Gratis)</strong>
                   </span>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl bg-blue-100 text-[#193966] font-bold text-xs">
+                <div className="px-3.5 py-1.5 rounded-xl bg-blue-100 text-[#193966] font-black text-xs border border-blue-200">
                   Semester Ganjil
                 </div>
               </div>
 
               {/* Payment Methods */}
               <div className="flex flex-col gap-2.5">
-                <label className="text-xs font-bold text-slate-700">Pilih Metode Pembayaran VA</label>
-                <div className="flex flex-col gap-2">
+                <label className="text-xs font-black text-slate-800">Pilih Rekening Bank Virtual Account</label>
+                <div className="flex flex-col gap-2.5">
                   {PAYMENT_METHODS.map((pm) => {
-                    const isSelected = selectedMethod === pm.name;
+                    const isSelected = selectedMethodId === pm.id;
                     return (
                       <div
                         key={pm.id}
-                        onClick={() => setSelectedMethod(pm.name)}
-                        className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+                        onClick={() => setSelectedMethodId(pm.id)}
+                        className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
                           isSelected
-                            ? "border-[#193966] bg-blue-50/50 shadow-sm"
+                            ? "border-[#193966] bg-blue-50/60 shadow-sm ring-1 ring-[#193966]"
                             : "border-slate-200 hover:border-slate-300 bg-white"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3.5">
                           <div
-                            className={`w-9 h-9 rounded-xl ${pm.logoColor} text-white flex items-center justify-center font-black text-xs flex-shrink-0`}
+                            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${pm.color} text-white flex items-center justify-center font-black text-xs flex-shrink-0 shadow-sm`}
                           >
                             {pm.bank.split(" ")[1] || "VA"}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-xs font-bold text-slate-900">{pm.name}</span>
-                            <span className="text-[11px] text-slate-500">{pm.desc}</span>
+                            <span className="text-xs font-black text-slate-900">{pm.name}</span>
+                            <span className="text-[11px] text-slate-500 font-medium leading-snug mt-0.5">
+                              {pm.desc}
+                            </span>
                           </div>
                         </div>
 
                         <div
-                          className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
                             isSelected
                               ? "border-[#193966] bg-[#193966] text-white"
                               : "border-slate-300 bg-white"
@@ -908,18 +1113,18 @@ export default function UKTManager() {
               </div>
 
               {/* Instant Verification Demo Checkbox */}
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 flex items-start gap-3">
                 <input
                   id="instantVerify"
                   type="checkbox"
                   checked={instantVerify}
                   onChange={(e) => setInstantVerify(e.target.checked)}
-                  className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  className="mt-1 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
                 />
-                <label htmlFor="instantVerify" className="text-xs text-emerald-900 cursor-pointer">
-                  <strong>Simulasikan Pembayaran Langsung Lunas (Demo Mode)</strong>
-                  <p className="text-[11px] text-emerald-700 mt-0.5">
-                    Centang untuk memverifikasi otomatis pelunasan UKT tanpa harus menunggu persetujuan manual admin BAAK.
+                <label htmlFor="instantVerify" className="text-xs text-emerald-950 cursor-pointer">
+                  <strong className="font-black">Simulasikan Pembayaran Langsung Lunas (Demo Mode)</strong>
+                  <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed font-medium">
+                    Centang opsi ini agar pembayaran diverifikasi otomatis seketika tanpa harus menunggu approval manual admin BAAK.
                   </p>
                 </label>
               </div>
@@ -936,17 +1141,17 @@ export default function UKTManager() {
                 <button
                   type="submit"
                   disabled={submittingPayment}
-                  className="px-6 py-2.5 rounded-xl bg-[#193966] hover:bg-[#122b50] text-white text-xs font-bold transition shadow-lg shadow-[#193966]/20 cursor-pointer flex items-center gap-2"
+                  className="lms-btn-primary"
                 >
                   {submittingPayment ? (
                     <>
                       <RefreshCw size={14} className="animate-spin" />
-                      <span>Memproses...</span>
+                      <span>Memproses Pembayaran...</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 size={14} />
-                      <span>Konfirmasi Pembayaran</span>
+                      <span>Konfirmasi & Dapatkan VA</span>
                     </>
                   )}
                 </button>
@@ -957,27 +1162,27 @@ export default function UKTManager() {
       )}
 
       {/* ========================================================================= */}
-      {/* 7. MODAL: OFFICIAL DIGITAL RECEIPT / BUKTI LUNAS UKT                       */}
+      {/* 7. MODAL: OFFICIAL DIGITAL RECEIPT / BUKTI LUNAS UKT (HIGH PRESTIGE)       */}
       {/* ========================================================================= */}
       {receiptModalOpen && selectedBillForReceipt && (
         <div className="modal-backdrop">
-          <div className="user-form-modal course-modal max-w-2xl bg-white p-0 overflow-hidden">
-            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <ShieldCheck size={22} className="text-emerald-400" />
+          <div className="user-form-modal course-modal max-w-2xl bg-white p-0 overflow-hidden shadow-2xl">
+            <div className="p-6 bg-gradient-to-r from-slate-900 via-[#193966] to-[#0f2442] text-white flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center border border-white/15">
+                  <ShieldCheck size={24} className="text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight">Bukti Pembayaran Resmi UKT</h3>
-                  <span className="text-xs text-slate-300">
-                    Biro Administrasi Akademik & Kemahasiswaan (BAAK)
+                  <h3 className="text-lg font-black tracking-tight">Lembar Bukti Pelunasan Resmi UKT</h3>
+                  <span className="text-xs text-blue-200 font-medium">
+                    Biro Administrasi Akademik & Kemahasiswaan (BAAK) Universitas
                   </span>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setReceiptModalOpen(false)}
-                className="text-white/80 hover:text-white cursor-pointer"
+                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 cursor-pointer transition"
               >
                 <X size={20} />
               </button>
@@ -988,9 +1193,9 @@ export default function UKTManager() {
               <div className="flex items-center justify-between border-b pb-4 border-slate-200">
                 <div className="flex flex-col">
                   <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
-                    No. Kwitansi / Transaksi
+                    No. Kwitansi Digital
                   </span>
-                  <span className="font-mono font-bold text-slate-900 text-sm">
+                  <span className="font-mono font-black text-slate-900 text-sm">
                     {selectedBillForReceipt.payment?.id || `INV-${selectedBillForReceipt.id.toUpperCase()}`}
                   </span>
                 </div>
@@ -998,7 +1203,7 @@ export default function UKTManager() {
                   <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
                     Status Dokumen
                   </span>
-                  <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+                  <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black border border-emerald-300">
                     LUNAS TERVERIFIKASI
                   </span>
                 </div>
@@ -1006,26 +1211,26 @@ export default function UKTManager() {
 
               {/* Student & Bill Details Grid */}
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="flex flex-col gap-1 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Nama Mahasiswa</span>
-                  <span className="font-bold text-slate-900">
+                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold">Nama Mahasiswa</span>
+                  <span className="font-black text-slate-900 text-sm">
                     {selectedBillForReceipt.studentName || user?.name}
                   </span>
                 </div>
-                <div className="flex flex-col gap-1 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Nomor Induk Mahasiswa (NIM)</span>
-                  <span className="font-bold font-mono text-slate-900">
+                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold">Nomor Induk Mahasiswa (NIM)</span>
+                  <span className="font-mono font-black text-slate-900 text-sm">
                     {selectedBillForReceipt.studentNim || studentInfo?.nim || "2023101001"}
                   </span>
                 </div>
-                <div className="flex flex-col gap-1 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Program Studi</span>
+                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold">Program Studi</span>
                   <span className="font-bold text-slate-900">
                     {selectedBillForReceipt.studyProgramName || studentInfo?.studyProgramName || "Teknik Informatika"}
                   </span>
                 </div>
-                <div className="flex flex-col gap-1 p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="text-slate-500 font-medium">Tahun Akademik / Semester</span>
+                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-slate-500 font-semibold">Tahun Akademik</span>
                   <span className="font-bold text-slate-900">
                     {selectedBillForReceipt.semesterName || "Semester Ganjil 2026/2027"}
                   </span>
@@ -1033,38 +1238,38 @@ export default function UKTManager() {
               </div>
 
               {/* Payment Details */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col gap-2.5">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Metode Pembayaran</span>
+                  <span className="font-medium">Metode Pembayaran</span>
                   <strong className="text-slate-900">
                     {selectedBillForReceipt.payment?.method || "Virtual Account Bank BNI"}
                   </strong>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Nomor Virtual Account</span>
+                  <span className="font-medium">Nomor Virtual Account</span>
                   <strong className="font-mono text-slate-900">
                     {selectedBillForReceipt.payment?.vaNumber || `8808${studentInfo?.nim || "2023101001"}`}
                   </strong>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Waktu Pelunasan</span>
-                  <span className="text-slate-700">
+                  <span className="font-medium">Waktu Transaksi Selesai</span>
+                  <span className="text-slate-800 font-semibold">
                     {selectedBillForReceipt.payment?.verifiedAt
                       ? new Date(selectedBillForReceipt.payment.verifiedAt).toLocaleString("id-ID")
                       : "22 September 2026, 09:00 WIB"}
                   </span>
                 </div>
-                <div className="border-t border-slate-200 pt-2.5 mt-1 flex items-center justify-between">
+                <div className="border-t border-slate-200 pt-3 mt-1 flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800">Total Nominal Lunas</span>
-                  <span className="text-lg font-black text-emerald-600">
+                  <span className="text-xl font-black text-emerald-600">
                     {formatRupiah(selectedBillForReceipt.amount)}
                   </span>
                 </div>
               </div>
 
               {/* Footer Stamp & Print Button */}
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-[11px] text-slate-400 italic">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                <span className="text-[11px] text-slate-400 italic max-w-xs leading-tight">
                   Dokumen digital ini sah dan diterbitkan secara elektronik oleh Sistem Informasi Akademik Universitas.
                 </span>
 
@@ -1072,15 +1277,15 @@ export default function UKTManager() {
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    className="lms-btn-secondary"
                   >
-                    <Printer size={14} />
+                    <Printer size={15} />
                     <span>Cetak Kwitansi</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setReceiptModalOpen(false)}
-                    className="px-5 py-2 rounded-xl bg-[#193966] text-white text-xs font-bold hover:bg-[#122b50] transition cursor-pointer"
+                    className="lms-btn-primary"
                   >
                     Selesai
                   </button>
@@ -1092,7 +1297,121 @@ export default function UKTManager() {
       )}
 
       {/* ========================================================================= */}
-      {/* 8. MODAL: ADMIN CREATE / GENERATE UKT BILL                                 */}
+      {/* 8. MODAL: PAYMENT GUIDE / PETUNJUK PEMBAYARAN VIRTUAL ACCOUNT             */}
+      {/* ========================================================================= */}
+      {guideModalOpen && (
+        <div className="modal-backdrop">
+          <div className="user-form-modal course-modal max-w-2xl bg-white p-0 overflow-hidden shadow-2xl">
+            <div className="p-6 bg-[#193966] text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <HelpCircle size={20} className="text-blue-200" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">Petunjuk Pembayaran Virtual Account</h3>
+                  <p className="text-xs text-blue-200">
+                    Tata cara pelunasan tagihan melalui ATM dan Mobile Banking.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGuideModalOpen(false)}
+                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 cursor-pointer transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-5">
+              {/* Bank selector */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {PAYMENT_METHODS.map((bank) => {
+                  const isActive = guideActiveBank === bank.id;
+                  return (
+                    <button
+                      key={bank.id}
+                      onClick={() => setGuideActiveBank(bank.id)}
+                      className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
+                        isActive
+                          ? "bg-blue-50 border-[#193966] ring-1 ring-[#193966] text-[#193966]"
+                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-xl bg-gradient-to-br ${bank.color} text-white font-black text-[11px] flex items-center justify-center`}
+                      >
+                        {bank.bank.split(" ")[1]}
+                      </div>
+                      <span className="text-xs font-black">{bank.bank}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub-tab: Mobile Banking vs ATM */}
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+                <button
+                  onClick={() => setGuideTab("mbanking")}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                    guideTab === "mbanking"
+                      ? "bg-[#193966] text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Mobile Banking
+                </button>
+                <button
+                  onClick={() => setGuideTab("atm")}
+                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                    guideTab === "atm"
+                      ? "bg-[#193966] text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  ATM & Setor Tunai
+                </button>
+              </div>
+
+              {/* Step by Step instructions */}
+              <div className="flex flex-col gap-3">
+                <span className="text-xs font-black text-slate-800">
+                  Langkah Pembayaran via {guideTab === "mbanking" ? "Mobile Banking" : "Mesin ATM"}:
+                </span>
+                <div className="flex flex-col gap-2.5">
+                  {(guideTab === "mbanking"
+                    ? selectedGuideMethod.mBankingSteps
+                    : selectedGuideMethod.atmSteps
+                  ).map((step, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-start gap-3"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-[#193966] text-white text-[11px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {idx + 1}
+                      </div>
+                      <span className="font-medium leading-relaxed">{step}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setGuideModalOpen(false)}
+                  className="lms-btn-primary"
+                >
+                  Tutup Panduan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 9. MODAL: ADMIN CREATE / GENERATE UKT BILL                                 */}
       {/* ========================================================================= */}
       {createBillModalOpen && (
         <div className="modal-backdrop">
@@ -1104,7 +1423,7 @@ export default function UKTManager() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-900">Terbitkan Tagihan UKT Baru</h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 font-medium">
                     Konfigurasikan tagihan semester mahasiswa berdasarkan penetapan golongan UKT.
                   </p>
                 </div>
@@ -1214,7 +1533,7 @@ export default function UKTManager() {
                 <button
                   type="submit"
                   disabled={creatingBill}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/20 cursor-pointer flex items-center gap-2"
+                  className="lms-btn-primary"
                 >
                   {creatingBill ? (
                     <>
