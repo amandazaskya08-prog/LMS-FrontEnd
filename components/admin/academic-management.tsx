@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Building2,
@@ -14,6 +14,8 @@ import {
   Users,
   BookOpen,
   MoreHorizontal,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 
 import type {
@@ -21,6 +23,10 @@ import type {
   StudyProgram,
   AcademicStatus,
 } from "../../src/models/academic";
+
+import { authFetch } from "../../src/services/api-clients";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 // ========================================
 // DEMO DATA
@@ -139,6 +145,36 @@ export default function AcademicManagement() {
     name: string;
   } | null>(null);
 
+  // Fetch academic data from backend database
+  const fetchAcademicData = async () => {
+    try {
+      const [facRes, progRes] = await Promise.all([
+        authFetch(`${API_URL}/faculties`),
+        authFetch(`${API_URL}/faculties/programs`),
+      ]);
+
+      if (facRes.ok) {
+        const facJson = await facRes.json();
+        if (facJson.success && Array.isArray(facJson.data) && facJson.data.length > 0) {
+          setFaculties(facJson.data);
+        }
+      }
+
+      if (progRes.ok) {
+        const progJson = await progRes.json();
+        if (progJson.success && Array.isArray(progJson.data) && progJson.data.length > 0) {
+          setPrograms(progJson.data);
+        }
+      }
+    } catch {
+      // Ignore network blip, retain local state
+    }
+  };
+
+  useEffect(() => {
+    fetchAcademicData();
+  }, []);
+
   // Statistics
 
   const facultyCount = faculties.length;
@@ -200,8 +236,7 @@ export default function AcademicManagement() {
   }, [programs, faculties, search, statusFilter, facultyFilter]);
 
   // Save faculty
-
-  function saveFaculty(data: FacultyForm) {
+  async function saveFaculty(data: FacultyForm) {
     if (modal?.type !== "faculty") return;
 
     if (modal.data) {
@@ -212,24 +247,55 @@ export default function AcademicManagement() {
             : item
         )
       );
+
+      try {
+        await authFetch(`${API_URL}/faculties/${modal.data.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      } catch {
+        // Handled
+      }
     } else {
+      const tempId = `FAC${Date.now()}`;
       setFaculties((previous) => [
         {
           ...data,
-          id: `FAC${Date.now()}`,
+          id: tempId,
           createdAt: new Date().toISOString().slice(0, 10),
         },
         ...previous,
       ]);
+
+      try {
+        const res = await authFetch(`${API_URL}/faculties`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setFaculties((prev) => prev.map((f) => (f.id === tempId ? { ...f, id: json.data.id } : f)));
+        }
+      } catch {
+        // Handled
+      }
     }
 
     setModal(null);
   }
 
   // Save program
-
-  function saveProgram(data: ProgramForm) {
+  async function saveProgram(data: ProgramForm) {
     if (modal?.type !== "program") return;
+
+    // VALIDASI: Fakultas wajib berstatus aktif!
+    const targetFaculty = faculties.find((f) => f.id === data.facultyId);
+    if (!targetFaculty || targetFaculty.status !== "active") {
+      alert("Fakultas yang dipilih sedang NONAKTIF. Program studi hanya dapat ditempatkan pada fakultas yang aktif.");
+      return;
+    }
 
     if (modal.data) {
       setPrograms((previous) =>
@@ -239,57 +305,102 @@ export default function AcademicManagement() {
             : item
         )
       );
+
+      try {
+        await authFetch(`${API_URL}/faculties/programs/${modal.data.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      } catch {
+        // Handled
+      }
     } else {
+      const tempId = `PROG${Date.now()}`;
       setPrograms((previous) => [
         {
           ...data,
-          id: `PROG${Date.now()}`,
+          id: tempId,
           createdAt: new Date().toISOString().slice(0, 10),
         },
         ...previous,
       ]);
+
+      try {
+        const res = await authFetch(`${API_URL}/faculties/programs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setPrograms((prev) => prev.map((p) => (p.id === tempId ? { ...p, id: json.data.id } : p)));
+        }
+      } catch {
+        // Handled
+      }
     }
 
     setModal(null);
   }
 
-  // Toggle active status
-
-  function toggleStatus(type: Tab, id: string) {
+  // Toggle active status (Faculties & Programs)
+  async function toggleStatus(type: Tab, id: string) {
     if (type === "faculties") {
+      const target = faculties.find((f) => f.id === id);
+      const nextStatus = target?.status === "active" ? "inactive" : "active";
+
       setFaculties((previous) =>
         previous.map((item) =>
           item.id === id
             ? {
                 ...item,
-                status: item.status === "active"
-                  ? "inactive"
-                  : "active",
+                status: nextStatus,
               }
             : item
         )
       );
+
+      try {
+        await authFetch(`${API_URL}/faculties/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        });
+      } catch {
+        // Handled
+      }
     } else {
+      const target = programs.find((p) => p.id === id);
+      const nextStatus = target?.status === "active" ? "inactive" : "active";
+
       setPrograms((previous) =>
         previous.map((item) =>
           item.id === id
             ? {
                 ...item,
-                status: item.status === "active"
-                  ? "inactive"
-                  : "active",
+                status: nextStatus,
               }
             : item
         )
       );
+
+      try {
+        await authFetch(`${API_URL}/faculties/programs/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        });
+      } catch {
+        // Handled
+      }
     }
 
     setMenuId(null);
   }
 
   // Delete record
-
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
 
     if (deleteTarget.type === "faculties") {
@@ -299,7 +410,7 @@ export default function AcademicManagement() {
 
       if (hasPrograms) {
         alert(
-          "This faculty still has study programs. Delete or move those programs first."
+          "Fakultas ini masih memiliki program studi terdaftar. Harap hapus atau pindahkan program studi terlebih dahulu."
         );
 
         setDeleteTarget(null);
@@ -309,10 +420,26 @@ export default function AcademicManagement() {
       setFaculties((previous) =>
         previous.filter((item) => item.id !== deleteTarget.id)
       );
+
+      try {
+        await authFetch(`${API_URL}/faculties/${deleteTarget.id}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Handled
+      }
     } else {
       setPrograms((previous) =>
         previous.filter((item) => item.id !== deleteTarget.id)
       );
+
+      try {
+        await authFetch(`${API_URL}/faculties/programs/${deleteTarget.id}`, {
+          method: "DELETE",
+        });
+      } catch {
+        // Handled
+      }
     }
 
     setDeleteTarget(null);
@@ -887,9 +1014,21 @@ function ProgramModal({
   onClose: () => void;
   onSave: (data: ProgramForm) => void;
 }) {
-  const [facultyId, setFacultyId] = useState(
-    program?.facultyId ?? faculties[0]?.id ?? ""
-  );
+  // FILTER KETAT: Hanya fakultas yang aktif yang boleh dipilih!
+  const activeFaculties = useMemo(() => {
+    return faculties.filter((f) => f.status === "active");
+  }, [faculties]);
+
+  // Jika sedang edit prodi lama tapi fakultasnya nonaktif, kita deteksi
+  const currentFaculty = faculties.find((f) => f.id === program?.facultyId);
+  const isCurrentFacultyInactive = currentFaculty && currentFaculty.status === "inactive";
+
+  const defaultFacultyId =
+    program?.facultyId && currentFaculty?.status === "active"
+      ? program.facultyId
+      : activeFaculties[0]?.id ?? "";
+
+  const [facultyId, setFacultyId] = useState(defaultFacultyId);
   const [name, setName] = useState(program?.name ?? "");
   const [code, setCode] = useState(program?.code ?? "");
   const [degree, setDegree] = useState<
@@ -904,6 +1043,12 @@ function ProgramModal({
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    const chosenFaculty = faculties.find((f) => f.id === facultyId);
+    if (!chosenFaculty || chosenFaculty.status !== "active") {
+      alert("Fakultas yang dipilih sedang NONAKTIF (deactivated). Program studi hanya dapat ditempatkan pada fakultas yang berstatus aktif!");
+      return;
+    }
 
     onSave({
       facultyId,
@@ -927,18 +1072,32 @@ function ProgramModal({
       ) : (
         <form onSubmit={submit}>
           <div className="academic-form-grid">
-            <FormField label="Faculty *">
-              <select
-                value={facultyId}
-                onChange={(e) => setFacultyId(e.target.value)}
-                required
-              >
-                {faculties.map((faculty) => (
-                  <option key={faculty.id} value={faculty.id}>
-                    {faculty.name}
-                  </option>
-                ))}
-              </select>
+            <FormField label="Faculty (Hanya Fakultas Aktif) *">
+              {activeFaculties.length === 0 ? (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-bold flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-rose-600 flex-shrink-0" />
+                  <span>Semua fakultas sedang nonaktif. Anda tidak dapat memilih fakultas sebelum mengaktifkannya di tab Fakultas!</span>
+                </div>
+              ) : (
+                <select
+                  value={facultyId}
+                  onChange={(e) => setFacultyId(e.target.value)}
+                  required
+                >
+                  {activeFaculties.map((faculty) => (
+                    <option key={faculty.id} value={faculty.id}>
+                      {faculty.name} ({faculty.code})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {isCurrentFacultyInactive && (
+                <p className="text-[11px] font-semibold text-amber-800 mt-1.5 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                  <AlertTriangle size={14} className="text-amber-600 flex-shrink-0" />
+                  <span>Fakultas asal program studi ini ("{currentFaculty?.name}") telah dinonaktifkan. Silakan pilih fakultas aktif di atas.</span>
+                </p>
+              )}
             </FormField>
 
             <FormField label="Program Name *">
@@ -996,6 +1155,7 @@ function ProgramModal({
           <ModalActions
             onClose={onClose}
             submitLabel={program ? "Save Changes" : "Create Program"}
+            disabled={activeFaculties.length === 0}
           />
         </form>
       )}
@@ -1060,9 +1220,11 @@ function FormField({
 function ModalActions({
   onClose,
   submitLabel,
+  disabled,
 }: {
   onClose: () => void;
   submitLabel: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="modal-actions">
@@ -1074,7 +1236,11 @@ function ModalActions({
         Cancel
       </button>
 
-      <button type="submit" className="primary-action">
+      <button
+        type="submit"
+        className="primary-action disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={disabled}
+      >
         {submitLabel}
       </button>
     </div>

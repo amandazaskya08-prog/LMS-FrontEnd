@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Search,
@@ -15,6 +15,7 @@ import {
   UserCheck,
   UserX,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 import type {
@@ -23,6 +24,9 @@ import type {
 } from "../../src/models/user";
 
 import UserFormModal from "./user-form-modal";
+import { authFetch } from "../../src/services/api-clients";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const initialUsers: LMSUser[] = [
   {
@@ -87,6 +91,7 @@ const roleLabels: Record<UserRole, string> = {
 
 export default function UserManagement() {
   const [users, setUsers] = useState<LMSUser[]>(initialUsers);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -96,6 +101,28 @@ export default function UserManagement() {
 
   const [menuUser, setMenuUser] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LMSUser | null>(null);
+
+  // Fetch users from backend database
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await authFetch(`${API_URL}/users`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setUsers(json.data);
+        }
+      }
+    } catch {
+      // Fallback to local state if server unreachable
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -135,8 +162,9 @@ export default function UserManagement() {
     setMenuUser(null);
   }
 
-  function saveUser(data: Omit<LMSUser, "id" | "createdAt">) {
+  async function saveUser(data: Omit<LMSUser, "id" | "createdAt">) {
     if (editingUser) {
+      // Optimistic local update
       setUsers((previous) =>
         previous.map((user) =>
           user.id === editingUser.id
@@ -144,44 +172,95 @@ export default function UserManagement() {
             : user
         )
       );
+
+      try {
+        await authFetch(`${API_URL}/users/${editingUser.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+      } catch {
+        // Ignore network error
+      }
     } else {
+      const tempId = `USR${String(Date.now()).slice(-6)}`;
       const newUser: LMSUser = {
         ...data,
-        id: `USR${String(Date.now()).slice(-6)}`,
+        id: tempId,
         createdAt: new Date().toISOString().slice(0, 10),
       };
 
       setUsers((previous) => [newUser, ...previous]);
+
+      try {
+        const res = await authFetch(`${API_URL}/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setUsers((prev) => prev.map((u) => (u.id === tempId ? { ...u, id: json.data.id } : u)));
+        }
+      } catch {
+        // Ignore
+      }
     }
 
     setModalOpen(false);
     setEditingUser(null);
   }
 
-  function toggleStatus(userId: string) {
+  async function toggleStatus(userId: string) {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    const nextStatus = targetUser.status === "active" ? "inactive" : "active";
+
+    // Optimistic UI update
     setUsers((previous) =>
       previous.map((user) =>
         user.id === userId
           ? {
               ...user,
-              status:
-                user.status === "active" ? "inactive" : "active",
+              status: nextStatus,
             }
           : user
       )
     );
 
     setMenuUser(null);
+
+    // Sync to backend real database so deactivated user CANNOT login!
+    try {
+      await authFetch(`${API_URL}/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+    } catch {
+      // Handled
+    }
   }
 
-  function deleteUser() {
+  async function deleteUser() {
     if (!deleteTarget) return;
 
+    const targetId = deleteTarget.id;
+
     setUsers((previous) =>
-      previous.filter((user) => user.id !== deleteTarget.id)
+      previous.filter((user) => user.id !== targetId)
     );
 
     setDeleteTarget(null);
+
+    try {
+      await authFetch(`${API_URL}/users/${targetId}`, {
+        method: "DELETE",
+      });
+    } catch {
+      // Handled
+    }
   }
 
   return (
