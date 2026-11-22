@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Learning Management System Kuliah Universitas A",
+  title: "Learning Management System Kuliah Universitas Negeri Medan",
   description: "Learning Management System for College Students",
 };
 

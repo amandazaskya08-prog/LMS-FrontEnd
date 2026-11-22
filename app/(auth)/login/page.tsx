@@ -128,7 +128,7 @@ export default function LoginPage() {
             <GraduationCap size={32} />
           </div>
 
-          <h1>Learning Management System Kuliah Universitas A</h1>
+          <h1>Learning Management System Kuliah Universitas Negeri Medan</h1>
 
           <p>Your academic journey starts here.</p>
         </div>

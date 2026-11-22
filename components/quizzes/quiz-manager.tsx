@@ -418,8 +418,11 @@ export default function QuizManager() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const isLecturer = user?.role === "lecturer" || user?.role === "admin";
+  const isAdmin = user?.role === "admin";
+  const isLecturer = user?.role === "lecturer";
   const isStudent = user?.role === "student";
+  const canManageQuiz = isLecturer; // Pembuatan, pengeditan, penerbitan, dan penghapusan kuis khusus dosen
+  const canViewAttempts = isLecturer || isAdmin; // Admin dapat memonitor rekap nilai mahasiswa (read-only)
 
   // Filtered quizzes
   const filteredQuizzes = useMemo(() => {
@@ -777,19 +780,27 @@ export default function QuizManager() {
           <div>
             <div className="quiz-hero-tag">
               <GraduationCap className="w-3.5 h-3.5" />
-              Sistem Asesmen CBT & Ujian Akademik Terintegrasi
+              {isAdmin
+                ? "Direktori & Pengawasan CBT Kampus (Mode Baca Saja)"
+                : "Sistem Asesmen CBT & Ujian Akademik Terintegrasi"}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {isLecturer ? "Kelola Kuis & Ujian CBT Perkuliahan" : "Portal Ujian & Kuis Akademik Mahasiswa"}
+              {isAdmin
+                ? "Direktori Kuis & Ujian CBT Kampus"
+                : isLecturer
+                ? "Kelola Kuis & Ujian CBT Perkuliahan"
+                : "Portal Ujian & Kuis Akademik Mahasiswa"}
             </h1>
             <p className="text-[#dbeafe] text-xs sm:text-sm max-w-xl mt-1.5 opacity-90 leading-relaxed">
-              {isLecturer
+              {isAdmin
+                ? "Pemantauan seluruh kuis berkala, UTS, dan UAS yang dirilis oleh para dosen pengampu dari seluruh program studi. (Wewenang pembuatan & pengeditan khusus Dosen)."
+                : isLecturer
                 ? "Rancang butir soal pilihan ganda interaktif, tetapkan kunci jawaban & bobot poin, publikasikan ujian, dan pantau hasil evaluasi mahasiswa."
                 : "Akses kuis berkala, ujian tengah semester (UTS), dan ujian akhir semester (UAS) yang dirilis oleh dosen pengampu program studi Anda."}
             </p>
           </div>
 
-          {isLecturer && (
+          {canManageQuiz && (
             <button
               onClick={openCreateModal}
               className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs text-white bg-gradient-to-r from-[#2563eb] via-[#1d4ed8] to-[#1e40af] hover:from-[#3b82f6] hover:to-[#1d4ed8] shadow-xl shadow-blue-950/25 hover:shadow-2xl hover:shadow-blue-900/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 cursor-pointer border border-blue-400/30 tracking-wide flex-shrink-0 self-start md:self-auto"
@@ -799,6 +810,13 @@ export default function QuizManager() {
               </div>
               <span>Buat Kuis Baru</span>
             </button>
+          )}
+
+          {isAdmin && (
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-white shadow-sm flex-shrink-0">
+              <Eye className="w-4 h-4 text-emerald-300" />
+              <span>Akses Super Admin: Read-Only Monitoring</span>
+            </div>
           )}
         </div>
 
@@ -837,7 +855,9 @@ export default function QuizManager() {
               </div>
               <div className="quiz-stat-box">
                 <span>Hak Akses</span>
-                <strong className="text-indigo-200">Dosen Pengampu</strong>
+                <strong className={isAdmin ? "text-amber-300" : "text-indigo-200"}>
+                  {isAdmin ? "Super Admin (Read-Only)" : "Dosen Pengampu"}
+                </strong>
               </div>
             </>
           )}
@@ -964,7 +984,7 @@ export default function QuizManager() {
                       {quiz.type === "Kuis" ? "Kuis Berkala" : quiz.type}
                     </span>
 
-                    {isLecturer ? (
+                    {isLecturer || isAdmin ? (
                       <span
                         className={`text-xs px-3 py-1 rounded-full font-black border shadow-2xs ${
                           quiz.published
@@ -1014,7 +1034,7 @@ export default function QuizManager() {
                         <span>{quiz.questionCount} Soal</span>
                       </div>
                     )}
-                    {isLecturer ? (
+                    {isLecturer || isAdmin ? (
                       <div className="font-black text-[var(--primary)] flex items-center gap-1.5">
                         <Users className="w-4 h-4" />
                         <span>{quiz.attemptCount || 0} Pengumpulan</span>
@@ -1029,7 +1049,21 @@ export default function QuizManager() {
 
                 {/* Bottom Actions */}
                 <div className="pt-4 border-t border-slate-100 mt-2">
-                  {isLecturer ? (
+                  {isAdmin ? (
+                    <div className="flex items-center justify-between w-full">
+                      <button
+                        onClick={() => handleViewAttempts(quiz)}
+                        className="lms-btn-primary !py-2 !px-3.5 !text-xs font-black"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>Rekap Nilai Mahasiswa ({quiz.attemptCount || 0})</span>
+                      </button>
+
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                        Read-Only
+                      </span>
+                    </div>
+                  ) : isLecturer ? (
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
                         <button

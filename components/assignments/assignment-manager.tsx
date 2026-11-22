@@ -293,8 +293,11 @@ export default function AssignmentManager() {
     }
   };
 
-  const isLecturer = user?.role === "lecturer" || user?.role === "admin";
+  const isAdmin = user?.role === "admin";
+  const isLecturer = user?.role === "lecturer";
   const isStudent = user?.role === "student";
+  const canManageAssignment = isLecturer; // Pembuatan, pengeditan, penilaian, dan penghapusan tugas khusus Dosen
+  const canViewSubmissions = isLecturer || isAdmin; // Admin dapat memonitor lembar pengumpulan mahasiswa (read-only)
 
   // Filtered assignments
   const filteredAssignments = useMemo(() => {
@@ -380,19 +383,27 @@ export default function AssignmentManager() {
           <div>
             <div className="quiz-hero-tag">
               <GraduationCap className="w-3.5 h-3.5" />
-              Sistem Manajemen Tugas Akademik Terpadu
+              {isAdmin
+                ? "Direktori & Pengawasan Tugas Kampus (Mode Baca Saja)"
+                : "Sistem Manajemen Tugas Akademik Terpadu"}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {isLecturer ? "Kelola Penugasan Perkuliahan" : "Portal Tugas Kuliah & Lembar Pengumpulan"}
+              {isAdmin
+                ? "Direktori Penugasan Perkuliahan Kampus"
+                : isLecturer
+                ? "Kelola Penugasan Perkuliahan"
+                : "Portal Tugas Kuliah & Lembar Pengumpulan"}
             </h1>
             <p className="text-[#dbeafe] text-xs sm:text-sm max-w-xl mt-1.5 opacity-90 leading-relaxed">
-              {isLecturer
+              {isAdmin
+                ? "Pemantauan seluruh penugasan perkuliahan dan lembar pengumpulan mahasiswa dari seluruh program studi. (Wewenang pembuatan & penilaian khusus Dosen)."
+                : isLecturer
                 ? "Rilis instruksi penugasan semester, tetapkan batas waktu dan rubrik nilai, lalu evaluasi lembar tugas digital mahasiswa Anda."
                 : "Akses instruksi penugasan dari dosen pengampu, unggah dokumen tugas atau tautan berkas mandiri sebelum batas tenggat berakhir."}
             </p>
           </div>
 
-          {isLecturer && (
+          {canManageAssignment && (
             <button
               onClick={openCreateModal}
               className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-black text-xs text-white bg-gradient-to-r from-[#2563eb] via-[#1d4ed8] to-[#1e40af] hover:from-[#3b82f6] hover:to-[#1d4ed8] shadow-xl shadow-blue-950/25 hover:shadow-2xl hover:shadow-blue-900/35 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-200 cursor-pointer border border-blue-400/30 tracking-wide flex-shrink-0 self-start md:self-auto"
@@ -402,6 +413,13 @@ export default function AssignmentManager() {
               </div>
               <span>Rilis Tugas Baru</span>
             </button>
+          )}
+
+          {isAdmin && (
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-xs font-bold text-white shadow-sm flex-shrink-0">
+              <Eye className="w-4 h-4 text-emerald-300" />
+              <span>Akses Super Admin: Read-Only Monitoring</span>
+            </div>
           )}
         </div>
 
@@ -434,7 +452,9 @@ export default function AssignmentManager() {
               </div>
               <div className="quiz-stat-box">
                 <span>Tingkat Akses</span>
-                <strong className="text-indigo-200">Dosen Pengampu</strong>
+                <strong className={isAdmin ? "text-amber-300" : "text-indigo-200"}>
+                  {isAdmin ? "Super Admin (Read-Only)" : "Dosen Pengampu"}
+                </strong>
               </div>
             </>
           )}
@@ -589,7 +609,7 @@ export default function AssignmentManager() {
                       Tugas Perkuliahan
                     </span>
 
-                    {isLecturer ? (
+                    {isLecturer || isAdmin ? (
                       <span className="text-xs px-3 py-1 rounded-full font-black bg-slate-100 text-slate-800 border border-slate-300 flex items-center gap-1.5 shadow-2xs">
                         <Users size={13} className="text-slate-600" />
                         <span>{asg.submissionCount || 0} Terkumpul</span>
@@ -664,7 +684,21 @@ export default function AssignmentManager() {
 
                 {/* Card Footer Actions */}
                 <div className="pt-4 border-t border-slate-100 mt-2">
-                  {isLecturer ? (
+                  {isAdmin ? (
+                    <div className="flex items-center justify-between w-full">
+                      <button
+                        onClick={() => handleViewSubmissions(asg)}
+                        className="lms-btn-primary !py-2 !px-4 !text-xs font-black"
+                      >
+                        <Eye size={15} />
+                        <span>Lihat Pengumpulan Mahasiswa ({asg.submissionCount || 0})</span>
+                      </button>
+
+                      <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                        Read-Only
+                      </span>
+                    </div>
+                  ) : isLecturer ? (
                     <div className="flex items-center justify-between w-full">
                       <button
                         onClick={() => handleViewSubmissions(asg)}
@@ -1012,18 +1046,24 @@ export default function AssignmentManager() {
                             <span className="text-xs text-slate-400">Belum ada catatan umpan balik</span>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setGradingSubId(sub.id);
-                              setInputScore(sub.score || 85);
-                              setInputFeedback(sub.feedback || "");
-                            }}
-                            className="cbt-btn cbt-btn-primary !py-1.5 !px-3.5 !text-xs font-bold"
-                          >
-                            <Award size={13} />
-                            <span>{sub.score !== null ? "Perbarui Nilai" : "Beri Nilai & Umpan Balik"}</span>
-                          </button>
+                          {canManageAssignment ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGradingSubId(sub.id);
+                                setInputScore(sub.score || 85);
+                                setInputFeedback(sub.feedback || "");
+                              }}
+                              className="cbt-btn cbt-btn-primary !py-1.5 !px-3.5 !text-xs font-bold"
+                            >
+                              <Award size={13} />
+                              <span>{sub.score !== null ? "Perbarui Nilai" : "Beri Nilai & Umpan Balik"}</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                              Mode Pengawasan Admin (Read-Only)
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
