@@ -161,6 +161,48 @@ export interface Payment {
   status: "paid" | "pending" | "overdue";
 }
 
+export interface ApiUktPayment {
+  id: string;
+  billId: string;
+  studentId: string;
+  method: string;
+  vaNumber: string;
+  amount: number;
+  status: "Menunggu Verifikasi" | "Terverifikasi" | "Ditolak";
+  paidAt: string;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
+}
+
+export interface ApiUktBill {
+  id: string;
+  studentId: string;
+  studentName?: string;
+  studentNim?: string;
+  studentEmail?: string;
+  studyProgramName?: string;
+  semesterId: string;
+  semesterName?: string;
+  uktGroup: number;
+  amount: number;
+  dueDate: string;
+  status: "Belum Bayar" | "Menunggu Verifikasi" | "Lunas";
+  createdAt: string;
+  payment?: ApiUktPayment | null;
+}
+
+export interface ApiUktSummary {
+  totalBills: number;
+  totalAmount?: number;
+  paidAmount?: number;
+  hasUnpaid?: boolean;
+  lunasCount?: number;
+  pendingCount?: number;
+  unpaidCount?: number;
+  totalNominal?: number;
+  totalCollected?: number;
+}
+
 /** Standard API response envelope. */
 export interface ApiEnvelope<T> {
   success: boolean;
