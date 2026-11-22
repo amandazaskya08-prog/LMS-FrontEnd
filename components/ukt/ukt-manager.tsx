@@ -1028,130 +1028,116 @@ export default function UKTManager() {
       {/* ========================================================================= */}
       {payModalOpen && selectedBillForPay && (
         <div className="modal-backdrop">
-          <div className="user-form-modal course-modal max-w-xl">
-            <div className="user-modal-header">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#193966] text-white flex items-center justify-center flex-shrink-0">
+          <div className="user-form-modal course-modal">
+            <div className="modal-header">
+              <div>
+                <div className="modal-heading-icon">
                   <CreditCard size={20} />
                 </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">Pembayaran UKT Mahasiswa</h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Pilih bank penerbit Virtual Account untuk menyelesaikan pelunasan semester.
-                  </p>
-                </div>
+                <h2>Pembayaran UKT Mahasiswa</h2>
+                <p>Pilih rekening bank Virtual Account resmi untuk menyelesaikan pelunasan semester.</p>
               </div>
               <button
                 type="button"
+                className="modal-close"
                 onClick={() => setPayModalOpen(false)}
-                className="user-modal-close"
+                aria-label="Close"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handlePaySubmit} className="flex flex-col gap-5 p-6">
-              {/* Summary Card */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-slate-500 font-medium">Total Nominal Tagihan UKT</span>
-                  <h4 className="text-2xl font-black text-slate-900 mt-0.5">
-                    {formatRupiah(selectedBillForPay.amount)}
-                  </h4>
-                  <span className="text-[11px] text-slate-500 font-medium">
-                    Golongan {selectedBillForPay.uktGroup} · Biaya Administrasi: <strong className="text-emerald-600">Rp 0 (Gratis)</strong>
-                  </span>
+            <form onSubmit={handlePaySubmit}>
+              <div className="academic-form-grid">
+                <div className="form-field full-width">
+                  <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs text-[#193966] font-semibold">Total Nominal UKT</span>
+                      <h4 className="text-2xl font-black text-slate-900 mt-0.5">
+                        {formatRupiah(selectedBillForPay.amount)}
+                      </h4>
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        Golongan {selectedBillForPay.uktGroup} · Biaya Administrasi: <strong className="text-emerald-600">Rp 0 (Gratis)</strong>
+                      </span>
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-xl bg-blue-100 text-[#193966] font-black text-xs border border-blue-200">
+                      Semester Ganjil
+                    </div>
+                  </div>
                 </div>
-                <div className="px-3.5 py-1.5 rounded-xl bg-blue-100 text-[#193966] font-black text-xs border border-blue-200">
-                  Semester Ganjil
-                </div>
-              </div>
 
-              {/* Payment Methods */}
-              <div className="flex flex-col gap-2.5">
-                <label className="text-xs font-black text-slate-800">Pilih Rekening Bank Virtual Account</label>
-                <div className="flex flex-col gap-2.5">
-                  {PAYMENT_METHODS.map((pm) => {
-                    const isSelected = selectedMethodId === pm.id;
-                    return (
-                      <div
-                        key={pm.id}
-                        onClick={() => setSelectedMethodId(pm.id)}
-                        className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
-                          isSelected
-                            ? "border-[#193966] bg-blue-50/60 shadow-sm ring-1 ring-[#193966]"
-                            : "border-slate-200 hover:border-slate-300 bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div
-                            className={`w-10 h-10 rounded-xl bg-gradient-to-br ${pm.color} text-white flex items-center justify-center font-black text-xs flex-shrink-0 shadow-sm`}
-                          >
-                            {pm.bank.split(" ")[1] || "VA"}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-900">{pm.name}</span>
-                            <span className="text-[11px] text-slate-500 font-medium leading-snug mt-0.5">
-                              {pm.desc}
-                            </span>
-                          </div>
-                        </div>
-
+                <div className="form-field full-width">
+                  <label>Pilih Rekening Bank Virtual Account *</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-1">
+                    {PAYMENT_METHODS.map((pm) => {
+                      const isSelected = selectedMethodId === pm.id;
+                      return (
                         <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
+                          key={pm.id}
+                          onClick={() => setSelectedMethodId(pm.id)}
+                          className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition ${
                             isSelected
-                              ? "border-[#193966] bg-[#193966] text-white"
-                              : "border-slate-300 bg-white"
+                              ? "border-[#193966] bg-blue-50/60 ring-2 ring-[#193966]/20 shadow-xs"
+                              : "border-slate-200 hover:border-slate-300 bg-white"
                           }`}
                         >
-                          {isSelected && <Check size={12} strokeWidth={3} />}
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${pm.color} text-white flex items-center justify-center font-black text-xs flex-shrink-0 shadow-2xs`}>
+                              {pm.bank.split(" ")[1] || "VA"}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-slate-900">{pm.name}</span>
+                              <span className="text-[10.5px] text-slate-500 font-medium">Bebas biaya admin</span>
+                            </div>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            isSelected ? "border-[#193966] bg-[#193966] text-white" : "border-slate-300 bg-white"
+                          }`}>
+                            {isSelected && <Check size={12} strokeWidth={3} />}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="form-field full-width">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 flex items-start gap-3">
+                    <input
+                      id="instantVerify"
+                      type="checkbox"
+                      checked={instantVerify}
+                      onChange={(e) => setInstantVerify(e.target.checked)}
+                      className="mt-1 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
+                    />
+                    <label htmlFor="instantVerify" className="text-xs text-emerald-950 cursor-pointer">
+                      <strong className="font-black">Simulasikan Pembayaran Langsung Lunas (Demo Mode)</strong>
+                      <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed font-medium">
+                        Centang opsi ini agar pembayaran diverifikasi otomatis seketika tanpa harus menunggu approval manual admin BAAK.
+                      </p>
+                    </label>
+                  </div>
                 </div>
               </div>
 
-              {/* Instant Verification Demo Checkbox */}
-              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 flex items-start gap-3">
-                <input
-                  id="instantVerify"
-                  type="checkbox"
-                  checked={instantVerify}
-                  onChange={(e) => setInstantVerify(e.target.checked)}
-                  className="mt-1 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer w-4 h-4"
-                />
-                <label htmlFor="instantVerify" className="text-xs text-emerald-950 cursor-pointer">
-                  <strong className="font-black">Simulasikan Pembayaran Langsung Lunas (Demo Mode)</strong>
-                  <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed font-medium">
-                    Centang opsi ini agar pembayaran diverifikasi otomatis seketika tanpa harus menunggu approval manual admin BAAK.
-                  </p>
-                </label>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="modal-actions">
                 <button
                   type="button"
+                  className="secondary-action"
                   onClick={() => setPayModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Batal
                 </button>
-                <button
-                  type="submit"
-                  disabled={submittingPayment}
-                  className="lms-btn-primary"
-                >
+                <button type="submit" disabled={submittingPayment} className="primary-action">
                   {submittingPayment ? (
                     <>
                       <RefreshCw size={14} className="animate-spin" />
-                      <span>Memproses Pembayaran...</span>
+                      <span>Memproses...</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle2 size={14} />
-                      <span>Konfirmasi & Dapatkan VA</span>
+                      <CheckCircle2 size={15} />
+                      <span>Konfirmasi & Bayar</span>
                     </>
                   )}
                 </button>
@@ -1162,135 +1148,130 @@ export default function UKTManager() {
       )}
 
       {/* ========================================================================= */}
-      {/* 7. MODAL: OFFICIAL DIGITAL RECEIPT / BUKTI LUNAS UKT (HIGH PRESTIGE)       */}
+      {/* 7. MODAL: OFFICIAL DIGITAL RECEIPT / BUKTI LUNAS UKT                       */}
       {/* ========================================================================= */}
       {receiptModalOpen && selectedBillForReceipt && (
         <div className="modal-backdrop">
-          <div className="user-form-modal course-modal max-w-2xl bg-white p-0 overflow-hidden shadow-2xl">
-            <div className="p-6 bg-gradient-to-r from-slate-900 via-[#193966] to-[#0f2442] text-white flex items-center justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center border border-white/15">
-                  <ShieldCheck size={24} className="text-emerald-400" />
+          <div className="user-form-modal course-modal">
+            <div className="modal-header">
+              <div>
+                <div className="modal-heading-icon text-emerald-600 bg-emerald-50">
+                  <ShieldCheck size={20} />
                 </div>
-                <div>
-                  <h3 className="text-lg font-black tracking-tight">Lembar Bukti Pelunasan Resmi UKT</h3>
-                  <span className="text-xs text-blue-200 font-medium">
-                    Biro Administrasi Akademik & Kemahasiswaan (BAAK) Universitas
-                  </span>
-                </div>
+                <h2>Lembar Kwitansi Bukti Pelunasan UKT</h2>
+                <p>Dokumen bukti pembayaran resmi diterbitkan secara elektronik oleh BAAK Universitas.</p>
               </div>
               <button
                 type="button"
+                className="modal-close"
                 onClick={() => setReceiptModalOpen(false)}
-                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 cursor-pointer transition"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-8 flex flex-col gap-6">
+            <div className="academic-form-grid">
               {/* Receipt Header details */}
-              <div className="flex items-center justify-between border-b pb-4 border-slate-200">
-                <div className="flex flex-col">
-                  <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
-                    No. Kwitansi Digital
-                  </span>
-                  <span className="font-mono font-black text-slate-900 text-sm">
-                    {selectedBillForReceipt.payment?.id || `INV-${selectedBillForReceipt.id.toUpperCase()}`}
-                  </span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">
-                    Status Dokumen
-                  </span>
-                  <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black border border-emerald-300">
-                    LUNAS TERVERIFIKASI
-                  </span>
-                </div>
-              </div>
-
-              {/* Student & Bill Details Grid */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-semibold">Nama Mahasiswa</span>
-                  <span className="font-black text-slate-900 text-sm">
-                    {selectedBillForReceipt.studentName || user?.name}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-semibold">Nomor Induk Mahasiswa (NIM)</span>
-                  <span className="font-mono font-black text-slate-900 text-sm">
-                    {selectedBillForReceipt.studentNim || studentInfo?.nim || "2023101001"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-semibold">Program Studi</span>
-                  <span className="font-bold text-slate-900">
-                    {selectedBillForReceipt.studyProgramName || studentInfo?.studyProgramName || "Teknik Informatika"}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-1 p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-slate-500 font-semibold">Tahun Akademik</span>
-                  <span className="font-bold text-slate-900">
-                    {selectedBillForReceipt.semesterName || "Semester Ganjil 2026/2027"}
-                  </span>
+              <div className="form-field full-width">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                      No. Kwitansi Digital
+                    </span>
+                    <span className="font-mono font-black text-slate-900 text-sm mt-0.5">
+                      {selectedBillForReceipt.payment?.id || `INV-${selectedBillForReceipt.id.toUpperCase()}`}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                      Status Dokumen
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black border border-emerald-300 mt-0.5">
+                      LUNAS TERVERIFIKASI
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Payment Details */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col gap-2.5">
-                <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span className="font-medium">Metode Pembayaran</span>
-                  <strong className="text-slate-900">
-                    {selectedBillForReceipt.payment?.method || "Virtual Account Bank BNI"}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span className="font-medium">Nomor Virtual Account</span>
-                  <strong className="font-mono text-slate-900">
-                    {selectedBillForReceipt.payment?.vaNumber || `8808${studentInfo?.nim || "2023101001"}`}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span className="font-medium">Waktu Transaksi Selesai</span>
-                  <span className="text-slate-800 font-semibold">
-                    {selectedBillForReceipt.payment?.verifiedAt
-                      ? new Date(selectedBillForReceipt.payment.verifiedAt).toLocaleString("id-ID")
-                      : "22 September 2026, 09:00 WIB"}
-                  </span>
-                </div>
-                <div className="border-t border-slate-200 pt-3 mt-1 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-800">Total Nominal Lunas</span>
-                  <span className="text-xl font-black text-emerald-600">
-                    {formatRupiah(selectedBillForReceipt.amount)}
-                  </span>
+              {/* Student details */}
+              <div className="form-field">
+                <label>Nama Mahasiswa</label>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900">
+                  {selectedBillForReceipt.studentName || user?.name}
                 </div>
               </div>
 
-              {/* Footer Stamp & Print Button */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                <span className="text-[11px] text-slate-400 italic max-w-xs leading-tight">
-                  Dokumen digital ini sah dan diterbitkan secara elektronik oleh Sistem Informasi Akademik Universitas.
-                </span>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="lms-btn-secondary"
-                  >
-                    <Printer size={15} />
-                    <span>Cetak Kwitansi</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReceiptModalOpen(false)}
-                    className="lms-btn-primary"
-                  >
-                    Selesai
-                  </button>
+              <div className="form-field">
+                <label>Nomor Induk Mahasiswa (NIM)</label>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono font-bold text-slate-900">
+                  {selectedBillForReceipt.studentNim || studentInfo?.nim || "2023101001"}
                 </div>
               </div>
+
+              <div className="form-field">
+                <label>Program Studi</label>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900">
+                  {selectedBillForReceipt.studyProgramName || studentInfo?.studyProgramName || "Teknik Informatika"}
+                </div>
+              </div>
+
+              <div className="form-field">
+                <label>Tahun Akademik</label>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-900">
+                  {selectedBillForReceipt.semesterName || "Semester Ganjil 2026/2027"}
+                </div>
+              </div>
+
+              {/* Payment Details summary */}
+              <div className="form-field full-width">
+                <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between text-xs text-slate-600">
+                    <span className="font-medium">Kanal Pembayaran</span>
+                    <strong className="text-slate-900">
+                      {selectedBillForReceipt.payment?.method || "Virtual Account Bank BNI"}
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-600">
+                    <span className="font-medium">Nomor Virtual Account</span>
+                    <strong className="font-mono text-slate-900">
+                      {selectedBillForReceipt.payment?.vaNumber || `8808${studentInfo?.nim || "2023101001"}`}
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-600">
+                    <span className="font-medium">Waktu Transaksi</span>
+                    <span className="text-slate-800 font-semibold">
+                      {selectedBillForReceipt.payment?.verifiedAt
+                        ? new Date(selectedBillForReceipt.payment.verifiedAt).toLocaleString("id-ID")
+                        : "22 September 2026, 09:00 WIB"}
+                    </span>
+                  </div>
+                  <div className="border-t border-blue-200/80 pt-2.5 mt-1 flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-800">Total Nominal Lunas</span>
+                    <span className="text-xl font-black text-emerald-600">
+                      {formatRupiah(selectedBillForReceipt.amount)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={() => window.print()}
+              >
+                <Printer size={15} />
+                <span>Cetak / Unduh Kwitansi</span>
+              </button>
+              <button
+                type="button"
+                className="primary-action"
+                onClick={() => setReceiptModalOpen(false)}
+              >
+                Selesai
+              </button>
             </div>
           </div>
         </div>
@@ -1301,93 +1282,88 @@ export default function UKTManager() {
       {/* ========================================================================= */}
       {guideModalOpen && (
         <div className="modal-backdrop">
-          <div className="user-form-modal course-modal max-w-2xl bg-white p-0 overflow-hidden shadow-2xl">
-            <div className="p-6 bg-[#193966] text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <HelpCircle size={20} className="text-blue-200" />
+          <div className="user-form-modal course-modal">
+            <div className="modal-header">
+              <div>
+                <div className="modal-heading-icon">
+                  <HelpCircle size={20} />
                 </div>
-                <div>
-                  <h3 className="text-lg font-black tracking-tight">Petunjuk Pembayaran Virtual Account</h3>
-                  <p className="text-xs text-blue-200">
-                    Tata cara pelunasan tagihan melalui ATM dan Mobile Banking.
-                  </p>
-                </div>
+                <h2>Petunjuk Pembayaran Virtual Account</h2>
+                <p>Panduan langkah demi langkah transfer pelunasan UKT melalui Mobile Banking dan ATM.</p>
               </div>
               <button
                 type="button"
+                className="modal-close"
                 onClick={() => setGuideModalOpen(false)}
-                className="text-white/80 hover:text-white p-2 rounded-xl hover:bg-white/10 cursor-pointer transition"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-6 flex flex-col gap-5">
-              {/* Bank selector */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {PAYMENT_METHODS.map((bank) => {
-                  const isActive = guideActiveBank === bank.id;
-                  return (
-                    <button
-                      key={bank.id}
-                      onClick={() => setGuideActiveBank(bank.id)}
-                      className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
-                        isActive
-                          ? "bg-blue-50 border-[#193966] ring-1 ring-[#193966] text-[#193966]"
-                          : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
-                      }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-xl bg-gradient-to-br ${bank.color} text-white font-black text-[11px] flex items-center justify-center`}
+            <div className="academic-form-grid">
+              <div className="form-field full-width">
+                <label>Pilih Bank Pembayaran</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-1">
+                  {PAYMENT_METHODS.map((bank) => {
+                    const isActive = guideActiveBank === bank.id;
+                    return (
+                      <button
+                        type="button"
+                        key={bank.id}
+                        onClick={() => setGuideActiveBank(bank.id)}
+                        className={`p-3 rounded-2xl border text-center transition cursor-pointer flex flex-col items-center gap-1.5 ${
+                          isActive
+                            ? "bg-blue-50 border-[#193966] ring-2 ring-[#193966]/20 text-[#193966] shadow-xs"
+                            : "border-slate-200 hover:border-slate-300 bg-white text-slate-700"
+                        }`}
                       >
-                        {bank.bank.split(" ")[1]}
-                      </div>
-                      <span className="text-xs font-black">{bank.bank}</span>
-                    </button>
-                  );
-                })}
+                        <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${bank.color} text-white font-black text-[11px] flex items-center justify-center shadow-2xs`}>
+                          {bank.bank.split(" ")[1]}
+                        </div>
+                        <span className="text-xs font-black">{bank.bank}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Sub-tab: Mobile Banking vs ATM */}
-              <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-                <button
-                  onClick={() => setGuideTab("mbanking")}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                    guideTab === "mbanking"
-                      ? "bg-[#193966] text-white shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Mobile Banking
-                </button>
-                <button
-                  onClick={() => setGuideTab("atm")}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
-                    guideTab === "atm"
-                      ? "bg-[#193966] text-white shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  ATM & Setor Tunai
-                </button>
-              </div>
+              <div className="form-field full-width">
+                <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setGuideTab("mbanking")}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
+                      guideTab === "mbanking"
+                        ? "bg-[#193966] text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    Mobile Banking
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGuideTab("atm")}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
+                      guideTab === "atm"
+                        ? "bg-[#193966] text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    Mesin ATM / Setor Tunai
+                  </button>
+                </div>
 
-              {/* Step by Step instructions */}
-              <div className="flex flex-col gap-3">
-                <span className="text-xs font-black text-slate-800">
-                  Langkah Pembayaran via {guideTab === "mbanking" ? "Mobile Banking" : "Mesin ATM"}:
-                </span>
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-2 mt-1">
                   {(guideTab === "mbanking"
                     ? selectedGuideMethod.mBankingSteps
                     : selectedGuideMethod.atmSteps
                   ).map((step, idx) => (
                     <div
                       key={idx}
-                      className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-700 flex items-start gap-3"
+                      className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 flex items-start gap-3"
                     >
-                      <div className="w-5 h-5 rounded-full bg-[#193966] text-white text-[11px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#193966] text-white text-[11px] font-black flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
                         {idx + 1}
                       </div>
                       <span className="font-medium leading-relaxed">{step}</span>
@@ -1395,16 +1371,16 @@ export default function UKTManager() {
                   ))}
                 </div>
               </div>
+            </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setGuideModalOpen(false)}
-                  className="lms-btn-primary"
-                >
-                  Tutup Panduan
-                </button>
-              </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="primary-action w-full"
+                onClick={() => setGuideModalOpen(false)}
+              >
+                Tutup Panduan Pembayaran
+              </button>
             </div>
           </div>
         </div>
@@ -1415,33 +1391,29 @@ export default function UKTManager() {
       {/* ========================================================================= */}
       {createBillModalOpen && (
         <div className="modal-backdrop">
-          <div className="user-form-modal course-modal max-w-xl">
-            <div className="user-modal-header">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+          <div className="user-form-modal course-modal">
+            <div className="modal-header">
+              <div>
+                <div className="modal-heading-icon text-emerald-600 bg-emerald-50">
                   <Sparkles size={20} />
                 </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">Terbitkan Tagihan UKT Baru</h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Konfigurasikan tagihan semester mahasiswa berdasarkan penetapan golongan UKT.
-                  </p>
-                </div>
+                <h2>Terbitkan Tagihan UKT Baru</h2>
+                <p>Konfigurasikan tagihan semester mahasiswa berdasarkan penetapan golongan UKT.</p>
               </div>
               <button
                 type="button"
+                className="modal-close"
                 onClick={() => setCreateBillModalOpen(false)}
-                className="user-modal-close"
+                aria-label="Close"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateBillSubmit} className="flex flex-col gap-5 p-6">
+            <form onSubmit={handleCreateBillSubmit}>
               <div className="academic-form-grid">
-                {/* Select Student */}
                 <div className="form-field full-width">
-                  <label>Pilih Mahasiswa Penerima Tagihan*</label>
+                  <label>Pilih Mahasiswa Penerima Tagihan *</label>
                   <select
                     value={selectedStudentId}
                     onChange={(e) => {
@@ -1470,9 +1442,8 @@ export default function UKTManager() {
                   </select>
                 </div>
 
-                {/* UKT Group */}
                 <div className="form-field">
-                  <label>Golongan UKT (1 - 8)*</label>
+                  <label>Golongan UKT (1 - 8) *</label>
                   <select
                     value={newUktGroup}
                     onChange={(e) => {
@@ -1497,9 +1468,8 @@ export default function UKTManager() {
                   </select>
                 </div>
 
-                {/* Nominal */}
                 <div className="form-field">
-                  <label>Nominal Pembayaran (Rp)*</label>
+                  <label>Nominal Pembayaran (Rp) *</label>
                   <input
                     type="number"
                     value={newAmount}
@@ -1510,9 +1480,8 @@ export default function UKTManager() {
                   />
                 </div>
 
-                {/* Due Date */}
                 <div className="form-field full-width">
-                  <label>Batas Akhir Pelunasan (Jatuh Tempo)*</label>
+                  <label>Batas Akhir Pelunasan (Jatuh Tempo) *</label>
                   <input
                     type="date"
                     value={newDueDate}
@@ -1522,18 +1491,18 @@ export default function UKTManager() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="modal-actions">
                 <button
                   type="button"
+                  className="secondary-action"
                   onClick={() => setCreateBillModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={creatingBill}
-                  className="lms-btn-primary"
+                  className="primary-action"
                 >
                   {creatingBill ? (
                     <>
