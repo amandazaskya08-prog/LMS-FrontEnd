@@ -35,33 +35,31 @@ export default function DashboardShell({
 }) {
   const router = useRouter();
 
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (typeof window !== "undefined") {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Verify and refresh the authenticated user from the API safely after mount
+  useEffect(() => {
+    setMounted(true);
+    let active = true;
+
+    // Read cached user safely on client after hydration
+    const cached = typeof window !== "undefined" ? localStorage.getItem("lms_user") : null;
+    if (cached) {
       try {
-        const cached = localStorage.getItem("lms_user");
-        return cached ? (JSON.parse(cached) as AuthUser) : null;
+        const parsed = JSON.parse(cached) as AuthUser;
+        setUser(parsed);
+        setLoading(false);
       } catch {
-        return null;
+        // ignore
       }
     }
-    return null;
-  });
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !localStorage.getItem("lms_user");
-    }
-    return true;
-  });
-
-  // Verify and refresh the authenticated user from the API
-  useEffect(() => {
-    let active = true;
 
     // If there is no token or cached user, immediately redirect to login
     const token = getAuthToken();
-    const cachedUser = typeof window !== "undefined" ? localStorage.getItem("lms_user") : null;
-    if (!token && !cachedUser) {
+    if (!token && !cached) {
       router.replace("/login");
       return;
     }
@@ -75,6 +73,9 @@ export default function DashboardShell({
         if (res.status === 401) {
           // Token is genuinely invalid or revoked
           setAuthToken(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("lms_user");
+          }
           router.replace("/login");
           return;
         }
@@ -84,6 +85,9 @@ export default function DashboardShell({
 
         if (!json.success || !json.data?.user) {
           setAuthToken(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("lms_user");
+          }
           router.replace("/login");
           return;
         }
@@ -96,8 +100,7 @@ export default function DashboardShell({
       } catch (err) {
         // If server is temporarily unreachable (e.g. Railway cold start), don't kick out if we have cached user
         if (active) {
-          const hasCached = typeof window !== "undefined" && !!localStorage.getItem("lms_user");
-          if (!hasCached) {
+          if (!cached) {
             setAuthToken(null);
             router.replace("/login");
           } else {
@@ -117,6 +120,9 @@ export default function DashboardShell({
 
   async function handleLogout() {
     setAuthToken(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("lms_user");
+    }
     try {
       await authFetch(`${API_URL}/auth/logout`, {
         method: "POST",
@@ -129,10 +135,10 @@ export default function DashboardShell({
     window.location.href = "/login";
   }
 
-  // Avoid rendering the shell until the user is known.
-  if (loading || !user) {
+  // Avoid rendering the shell until mounted and the user is verified (prevents SSR hydration mismatch)
+  if (!mounted || loading || !user) {
     return (
-      <div className="dashboard-loading">
+      <div className="dashboard-loading" suppressHydrationWarning>
         Loading dashboard...
       </div>
     );

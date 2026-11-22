@@ -69,6 +69,7 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Mahasiswa");
@@ -91,8 +92,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
     try {
-      const stored = localStorage.getItem("auth_user");
+      const stored = localStorage.getItem("lms_user") || localStorage.getItem("auth_user");
       if (stored) {
         const u = JSON.parse(stored);
         if (u.name) setUserName(u.name);
