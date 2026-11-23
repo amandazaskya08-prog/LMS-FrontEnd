@@ -39,9 +39,7 @@ import type {
   AuthUser,
   StudentDirectoryItem,
 } from "../../src/models/types";
-import { authFetch } from "../../src/services/api-clients";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { authFetch, API_URL } from "../../src/services/api-clients";
 
 interface PaymentMethodDetail {
   id: string;

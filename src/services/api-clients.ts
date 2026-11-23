@@ -1,5 +1,16 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+/**
+ * Resolves the base API URL safely.
+ * Strips any trailing slashes and ensures the URL ends with /api,
+ * avoiding double slashes or missing /api regardless of Vercel env settings.
+ */
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) return "http://localhost:5000/api";
+  const trimmed = envUrl.trim().replace(/\/+$/, "");
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+export const API_URL = getApiBaseUrl();
 
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -33,7 +44,17 @@ export function authFetch(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return fetch(input, {
+  let finalInput = input;
+  if (typeof finalInput === "string") {
+    // If relative path like "/ukt", prepend API_URL
+    if (finalInput.startsWith("/")) {
+      finalInput = `${API_URL}${finalInput}`;
+    }
+    // Clean up any double slashes in the path while preserving protocol
+    finalInput = finalInput.replace(/(https?:\/\/)(.*)/, (_, proto, rest) => proto + rest.replace(/\/{2,}/g, "/"));
+  }
+
+  return fetch(finalInput, {
     ...init,
     credentials: "include",
     headers,

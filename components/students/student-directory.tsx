@@ -25,10 +25,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import type { StudentDirectoryItem, AuthUser } from "../../src/models/types";
-import { authFetch } from "../../src/services/api-clients";
+import { authFetch, API_URL } from "../../src/services/api-clients";
 import UserFormModal from "../admin/user-form-modal";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 interface StudyProgramMeta {
   id: string;

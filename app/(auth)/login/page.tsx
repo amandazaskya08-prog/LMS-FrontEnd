@@ -13,10 +13,7 @@ import {
 } from "lucide-react";
 
 import type { UserRole } from "../../../src/models/types";
-import { setAuthToken } from "../../../src/services/api-clients";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { setAuthToken, API_URL } from "../../../src/services/api-clients";
 
 const roleOptions = [
   {
@@ -134,10 +131,10 @@ export default function LoginPage() {
         </div>
 
         <div className="login-card">
-          <h2>Welcome back</h2>
+          <h2>Selamat Datang</h2>
 
           <p className="login-description">
-            Sign in to access your learning dashboard.
+            Login untuk mengakses pada portal LMS mahasiswa Universitas Negeri Medan.
           </p>
 
           <form onSubmit={handleLogin}>

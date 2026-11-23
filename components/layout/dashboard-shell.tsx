@@ -18,9 +18,7 @@ import { getInitials } from "../../src/lib/utils";
 import { authFetch, setAuthToken, getAuthToken } from "../../src/services/api-clients";
 
 import type { AuthUser, UserRole } from "../../src/models/types";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { API_URL } from "../../src/services/api-clients";
 
 const roleLabels: Record<UserRole, string> = {
   admin: "Super Administrator",

@@ -18,8 +18,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { AppNotification } from "../../src/models/types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { API_URL } from "../../src/services/api-clients";
 
 export default function NotificationPopover() {
   const router = useRouter();

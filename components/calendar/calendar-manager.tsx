@@ -30,9 +30,7 @@ import {
   Award,
 } from "lucide-react";
 import type { ApiCalendarEvent, AuthUser } from "../../src/models/types";
-import { authFetch } from "../../src/services/api-clients";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { authFetch, API_URL } from "../../src/services/api-clients";
 
 const MONTH_NAMES = [
   "Januari",

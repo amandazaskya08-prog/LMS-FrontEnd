@@ -22,9 +22,7 @@ import {
 import type { LMSUser, UserRole } from "../../src/models/user";
 
 import UserFormModal from "./user-form-modal";
-import { authFetch } from "../../src/services/api-clients";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { authFetch, API_URL } from "../../src/services/api-clients";
 
 const initialUsers: LMSUser[] = [
   {

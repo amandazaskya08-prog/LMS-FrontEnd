@@ -19,9 +19,7 @@ import {
 } from "lucide-react";
 
 import type { LMSUser, UserRole, UserStatus } from "../../src/models/user";
-import { authFetch } from "../../src/services/api-clients";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+import { authFetch, API_URL } from "../../src/services/api-clients";
 
 interface UserFormModalProps {
   user: LMSUser | null;
