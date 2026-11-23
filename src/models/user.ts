@@ -9,7 +9,15 @@ export interface LMSUser {
   role: UserRole;
   status: UserStatus;
   studentId?: string;
-  faculty: string;
+  nidn?: string;
+  faculty?: string;
   studyProgram?: string;
+  studyProgramId?: string;
+  angkatan?: number;
+  currentSemester?: number;
+  uktGroup?: number;
+  position?: string;
+  expertise?: string;
+  password?: string;
   createdAt: string;
 }

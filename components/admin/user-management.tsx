@@ -16,12 +16,10 @@ import {
   UserX,
   X,
   RefreshCw,
+  KeyRound,
 } from "lucide-react";
 
-import type {
-  LMSUser,
-  UserRole,
-} from "../../src/models/user";
+import type { LMSUser, UserRole } from "../../src/models/user";
 
 import UserFormModal from "./user-form-modal";
 import { authFetch } from "../../src/services/api-clients";
@@ -30,63 +28,44 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const initialUsers: LMSUser[] = [
   {
-    id: "USR001",
-    name: "Alexandra Putri",
-    email: "alexandra@student.ac.id",
-    role: "student",
+    id: "usr-admin",
+    name: "Admin BAAK",
+    email: "admin@kampus.ac.id",
+    role: "admin",
     status: "active",
-    studentId: "2024001001",
-    faculty: "Computer Science",
-    studyProgram: "Informatics",
+    faculty: "Biro Administrasi Akademik",
+    studyProgram: "Administrasi Kampus",
+    createdAt: "2026-01-01",
+  },
+  {
+    id: "usr-lec-1",
+    name: "Dr. Budi Santoso, M.Kom.",
+    email: "dosen@kampus.ac.id",
+    role: "lecturer",
+    status: "active",
+    studentId: "0010010001",
+    nidn: "0010010001",
+    faculty: "Fakultas Ilmu Komputer",
+    studyProgram: "Teknik Informatika",
     createdAt: "2026-01-10",
   },
   {
-    id: "USR002",
-    name: "Budi Santoso",
-    email: "budi@campus.ac.id",
-    role: "lecturer",
-    status: "active",
-    faculty: "Computer Science",
-    studyProgram: "Informatics",
-    createdAt: "2026-01-12",
-  },
-  {
-    id: "USR003",
-    name: "Citra Maharani",
-    email: "citra@student.ac.id",
+    id: "usr-stu-1",
+    name: "Andi Pratama",
+    email: "mahasiswa@kampus.ac.id",
     role: "student",
     status: "active",
-    studentId: "2024001002",
-    faculty: "Economics",
-    studyProgram: "Management",
+    studentId: "2023101001",
+    faculty: "Fakultas Ilmu Komputer",
+    studyProgram: "Teknik Informatika",
     createdAt: "2026-01-15",
-  },
-  {
-    id: "USR004",
-    name: "Dimas Pratama",
-    email: "dimas@student.ac.id",
-    role: "student",
-    status: "inactive",
-    studentId: "2024001003",
-    faculty: "Engineering",
-    studyProgram: "Civil Engineering",
-    createdAt: "2026-01-18",
-  },
-  {
-    id: "USR005",
-    name: "Super Administrator",
-    email: "admin@campus.ac.id",
-    role: "admin",
-    status: "active",
-    faculty: "University Administration",
-    createdAt: "2026-01-01",
   },
 ];
 
 const roleLabels: Record<UserRole, string> = {
   admin: "Administrator",
-  student: "Student",
-  lecturer: "Lecturer",
+  student: "Mahasiswa",
+  lecturer: "Dosen",
 };
 
 export default function UserManagement() {
@@ -132,7 +111,8 @@ export default function UserManagement() {
         user.name.toLowerCase().includes(keyword) ||
         user.email.toLowerCase().includes(keyword) ||
         user.id.toLowerCase().includes(keyword) ||
-        (user.studentId ?? "").toLowerCase().includes(keyword);
+        (user.studentId ?? "").toLowerCase().includes(keyword) ||
+        (user.nidn ?? "").toLowerCase().includes(keyword);
 
       const matchesRole =
         roleFilter === "all" || user.role === roleFilter;
@@ -162,36 +142,23 @@ export default function UserManagement() {
     setMenuUser(null);
   }
 
-  async function saveUser(data: Omit<LMSUser, "id" | "createdAt">) {
+  async function saveUser(data: any): Promise<{ success: boolean; message?: string } | void> {
     if (editingUser) {
-      // Optimistic local update
-      setUsers((previous) =>
-        previous.map((user) =>
-          user.id === editingUser.id
-            ? { ...user, ...data }
-            : user
-        )
-      );
-
       try {
-        await authFetch(`${API_URL}/users/${editingUser.id}`, {
+        const res = await authFetch(`${API_URL}/users/${editingUser.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
         });
-      } catch {
-        // Ignore network error
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          return { success: false, message: json.message || "Gagal memperbarui akun pengguna" };
+        }
+        await fetchUsers();
+      } catch (err: any) {
+        return { success: false, message: err?.message || "Gagal menghubungi server backend" };
       }
     } else {
-      const tempId = `USR${String(Date.now()).slice(-6)}`;
-      const newUser: LMSUser = {
-        ...data,
-        id: tempId,
-        createdAt: new Date().toISOString().slice(0, 10),
-      };
-
-      setUsers((previous) => [newUser, ...previous]);
-
       try {
         const res = await authFetch(`${API_URL}/users`, {
           method: "POST",
@@ -199,16 +166,18 @@ export default function UserManagement() {
           body: JSON.stringify(data),
         });
         const json = await res.json();
-        if (json.success && json.data) {
-          setUsers((prev) => prev.map((u) => (u.id === tempId ? { ...u, id: json.data.id } : u)));
+        if (!res.ok || !json.success) {
+          return { success: false, message: json.message || "Gagal membuat akun pengguna baru" };
         }
-      } catch {
-        // Ignore
+        await fetchUsers();
+      } catch (err: any) {
+        return { success: false, message: err?.message || "Gagal menghubungi server backend" };
       }
     }
 
     setModalOpen(false);
     setEditingUser(null);
+    return { success: true };
   }
 
   async function toggleStatus(userId: string) {
@@ -258,6 +227,7 @@ export default function UserManagement() {
       await authFetch(`${API_URL}/users/${targetId}`, {
         method: "DELETE",
       });
+      await fetchUsers();
     } catch {
       // Handled
     }
@@ -266,28 +236,38 @@ export default function UserManagement() {
   return (
     <div className="page-container">
       {/* HEADER */}
-
       <div className="page-header">
         <div>
-          <h1>User Management</h1>
-          <p>Manage university administrators, students and lecturers.</p>
+          <h1>Manajemen Pengguna & Akun</h1>
+          <p>Kelola seluruh akun login Super Admin, Dosen pengampu, dan Mahasiswa kampus.</p>
         </div>
 
-        <button className="primary-action" onClick={openAddModal}>
-          <Plus size={18} />
-          Add New User
-        </button>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            onClick={fetchUsers}
+            className="secondary-action"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            title="Muat ulang data pengguna"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            <span>Segarkan</span>
+          </button>
+
+          <button className="primary-action" onClick={openAddModal}>
+            <Plus size={18} />
+            Tambah Akun Baru
+          </button>
+        </div>
       </div>
 
       {/* STATISTICS */}
-
       <div className="user-stats-grid">
         <div className="user-stat-card">
           <div className="user-stat-icon blue">
             <Users size={22} />
           </div>
           <div>
-            <span>Total Users</span>
+            <span>Total Pengguna</span>
             <h2>{stats.total}</h2>
           </div>
         </div>
@@ -297,7 +277,7 @@ export default function UserManagement() {
             <GraduationCap size={22} />
           </div>
           <div>
-            <span>Students</span>
+            <span>Mahasiswa</span>
             <h2>{stats.students}</h2>
           </div>
         </div>
@@ -307,7 +287,7 @@ export default function UserManagement() {
             <BookOpen size={22} />
           </div>
           <div>
-            <span>Lecturers</span>
+            <span>Dosen Pengampu</span>
             <h2>{stats.lecturers}</h2>
           </div>
         </div>
@@ -317,28 +297,26 @@ export default function UserManagement() {
             <ShieldCheck size={22} />
           </div>
           <div>
-            <span>Administrators</span>
+            <span>Administrator</span>
             <h2>{stats.admins}</h2>
           </div>
         </div>
       </div>
 
       {/* USER TABLE */}
-
       <section className="content-card user-management-card">
         <div className="user-toolbar">
           <div>
-            <h2>All Users</h2>
-            <p>View and manage registered accounts.</p>
+            <h2>Daftar Seluruh Pengguna</h2>
+            <p>Data akun terdaftar yang memiliki akses login ke portal LMS Kuliah.</p>
           </div>
 
           <div className="user-filters">
             <div className="user-search">
               <Search size={18} />
-
               <input
                 type="search"
-                placeholder="Search users..."
+                placeholder="Cari nama, email, NIM, atau NIDN..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -347,22 +325,22 @@ export default function UserManagement() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              aria-label="Filter by role"
+              aria-label="Filter berdasarkan peran"
             >
-              <option value="all">All Roles</option>
+              <option value="all">Semua Peran</option>
+              <option value="student">Mahasiswa</option>
+              <option value="lecturer">Dosen</option>
               <option value="admin">Administrator</option>
-              <option value="student">Student</option>
-              <option value="lecturer">Lecturer</option>
             </select>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="Filter by status"
+              aria-label="Filter berdasarkan status"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">Semua Status</option>
+              <option value="active">Aktif (Bisa Login)</option>
+              <option value="inactive">Nonaktif (Diblokir)</option>
             </select>
           </div>
         </div>
@@ -371,13 +349,12 @@ export default function UserManagement() {
           <table className="user-table">
             <thead>
               <tr>
-                <th>User</th>
-                <th>User ID</th>
-                <th>Role</th>
-                <th>Faculty / Program</th>
-                <th>Status</th>
-                <th>Joined</th>
-                <th>Actions</th>
+                <th>Pengguna</th>
+                <th>NIM / NIDN</th>
+                <th>Peran (Role)</th>
+                <th>Program Studi & Fakultas</th>
+                <th>Status Akun</th>
+                <th>Aksi</th>
               </tr>
             </thead>
 
@@ -397,14 +374,14 @@ export default function UserManagement() {
 
                       <div>
                         <strong>{user.name}</strong>
-                        <span>{user.email}</span>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>{user.email}</span>
                       </div>
                     </div>
                   </td>
 
                   <td>
                     <span className="user-id">
-                      {user.studentId || user.id}
+                      {user.studentId || user.nidn || "—"}
                     </span>
                   </td>
 
@@ -416,19 +393,17 @@ export default function UserManagement() {
 
                   <td>
                     <div className="user-academic">
-                      <strong>{user.faculty}</strong>
-                      <span>{user.studyProgram || "—"}</span>
+                      <strong>{user.studyProgram || user.faculty || "—"}</strong>
+                      <span>{user.faculty || "—"}</span>
                     </div>
                   </td>
 
                   <td>
                     <span className={`status-badge ${user.status}`}>
                       <span />
-                      {user.status}
+                      {user.status === "active" ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
-
-                  <td>{user.createdAt}</td>
 
                   <td>
                     <div className="user-action-wrapper">
@@ -439,7 +414,7 @@ export default function UserManagement() {
                             menuUser === user.id ? null : user.id
                           )
                         }
-                        aria-label={`Actions for ${user.name}`}
+                        aria-label={`Aksi untuk ${user.name}`}
                       >
                         <MoreHorizontal size={19} />
                       </button>
@@ -448,7 +423,7 @@ export default function UserManagement() {
                         <div className="user-action-menu">
                           <button onClick={() => openEditModal(user)}>
                             <Pencil size={15} />
-                            Edit user
+                            Edit Pengguna / Password
                           </button>
 
                           <button onClick={() => toggleStatus(user.id)}>
@@ -457,10 +432,9 @@ export default function UserManagement() {
                             ) : (
                               <UserCheck size={15} />
                             )}
-
                             {user.status === "active"
-                              ? "Deactivate"
-                              : "Activate"}
+                              ? "Nonaktifkan Akun"
+                              : "Aktifkan Akun"}
                           </button>
 
                           <button
@@ -471,7 +445,7 @@ export default function UserManagement() {
                             }}
                           >
                             <Trash2 size={15} />
-                            Delete user
+                            Hapus Akun
                           </button>
                         </div>
                       )}
@@ -482,8 +456,8 @@ export default function UserManagement() {
 
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="user-empty">
-                    No users found. Try changing your search or filters.
+                  <td colSpan={6} className="user-empty">
+                    Tidak ada data pengguna yang sesuai dengan pencarian atau filter.
                   </td>
                 </tr>
               )}
@@ -492,12 +466,11 @@ export default function UserManagement() {
         </div>
 
         <div className="user-table-footer">
-          Showing {filteredUsers.length} of {users.length} users
+          Menampilkan {filteredUsers.length} dari {users.length} pengguna
         </div>
       </section>
 
       {/* ADD / EDIT MODAL */}
-
       {modalOpen && (
         <UserFormModal
           user={editingUser}
@@ -510,7 +483,6 @@ export default function UserManagement() {
       )}
 
       {/* DELETE CONFIRMATION */}
-
       {deleteTarget && (
         <div className="modal-backdrop">
           <div className="confirmation-modal">
@@ -526,12 +498,11 @@ export default function UserManagement() {
               <X size={19} />
             </button>
 
-            <h2>Delete User?</h2>
+            <h2>Hapus Akun Pengguna?</h2>
 
             <p>
-              Are you sure you want to delete{" "}
-              <strong>{deleteTarget.name}</strong>? This action cannot
-              be undone.
+              Apakah Anda yakin ingin menghapus akun <strong>{deleteTarget.name}</strong> ({deleteTarget.email})?
+              Tindakan ini akan menghapus akun login dan data profil terkait dari sistem secara permanen.
             </p>
 
             <div className="modal-actions">
@@ -539,14 +510,14 @@ export default function UserManagement() {
                 className="secondary-action"
                 onClick={() => setDeleteTarget(null)}
               >
-                Cancel
+                Batal
               </button>
 
               <button
                 className="danger-action"
                 onClick={deleteUser}
               >
-                Delete User
+                Hapus Akun
               </button>
             </div>
           </div>

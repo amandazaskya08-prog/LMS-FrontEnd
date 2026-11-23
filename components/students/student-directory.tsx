@@ -22,9 +22,11 @@ import {
   Clock,
   ChevronRight,
   ExternalLink,
+  UserPlus,
 } from "lucide-react";
 import type { StudentDirectoryItem, AuthUser } from "../../src/models/types";
 import { authFetch } from "../../src/services/api-clients";
+import UserFormModal from "../admin/user-form-modal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -56,6 +58,26 @@ export default function StudentDirectoryManager() {
   // Detail Modal
   const [selectedStudent, setSelectedStudent] = useState<StudentDirectoryItem | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [addUserModalOpen, setAddUserModalOpen] = useState(false);
+
+  const handleCreateUserAccount = async (data: any) => {
+    try {
+      const res = await authFetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { success: false, message: json.message || "Gagal membuat akun" };
+      }
+      await fetchStudents();
+      setAddUserModalOpen(false);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err?.message || "Gagal menghubungi server" };
+    }
+  };
 
   // Fetch current user
   useEffect(() => {
@@ -210,6 +232,17 @@ export default function StudentDirectoryManager() {
               <RefreshCw size={14} className={loading ? "animate-spin text-[#193966]" : "text-[#193966]"} />
               <span>Segarkan Data</span>
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setAddUserModalOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-xs bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-lg hover:shadow-xl cursor-pointer"
+                title="Tambah Akun Login Mahasiswa Baru"
+              >
+                <UserPlus size={15} />
+                <span>Tambah Akun Baru</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -757,6 +790,15 @@ export default function StudentDirectoryManager() {
             </div>
           </div>
         </div>
+      )}
+      {/* CREATE USER / STUDENT ACCOUNT MODAL */}
+      {addUserModalOpen && (
+        <UserFormModal
+          user={null}
+          initialRole="student"
+          onClose={() => setAddUserModalOpen(false)}
+          onSave={handleCreateUserAccount}
+        />
       )}
     </div>
   );
